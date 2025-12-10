@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全机构看板管理 - 机构负责人平台</title>
+  <!-- 引入外部资源 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    /* 全局基础样式 */
+    body { font-family: "微软雅黑", "思源黑体", sans-serif; background-color: #f5f7fa; color: #333; margin: 0; padding: 0; }
+    .btn-primary { background-color: #1890FF; border-color: #1890FF; }
+    .btn-primary:hover { background-color: #096DD9; border-color: #096DD9; }
+    .btn-outline-secondary { border-color: #ddd; color: #666; }
+    .btn-outline-secondary:hover { background-color: #f5f5f5; border-color: #ccc; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #fff; border-bottom: 1px solid #f0f0f0; border-radius: 12px 12px 0 0; padding: 15px 20px; font-weight: 600; font-size: 15px; }
+    .card-body { padding: 20px; }
+    .badge { font-size: 12px; }
+
+    /* 布局样式 */
+    .app-container { display: flex; min-height: 100vh; }
+    /* 侧边导航（机构负责人版） */
+    .sidebar { width: 220px; background: #fff; box-shadow: 1px 0 2px rgba(0,0,0,0.05); padding: 20px 0; flex-shrink: 0; }
+    .sidebar-logo { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #f0f0f0; margin-bottom: 20px; }
+    .sidebar-logo img { height: 40px; margin-bottom: 8px; }
+    .sidebar-logo h3 { font-size: 16px; color: #1890FF; font-weight: 600; margin: 0; }
+    .nav-menu { list-style: none; padding: 0; margin: 0; }
+    .nav-item { margin-bottom: 4px; }
+    .nav-link { display: flex; align-items: center; padding: 12px 20px; color: #666; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: #1890FF; background-color: #f0f7ff; border-left: 3px solid #1890FF; }
+    .nav-link i { font-size: 18px; margin-right: 12px; width: 20px; text-align: center; }
+    .nav-group-title { padding: 15px 20px 5px; font-size: 12px; color: #999; font-weight: 500; }
+
+    /* 主内容区 */
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    /* 顶部导航 */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #333; margin: 0; }
+    .user-info { display: flex; align-items: center; }
+    .notification { position: relative; margin-right: 20px; cursor: pointer; }
+    .notification i { font-size: 20px; color: #666; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #FF4D4F; color: #fff; border-radius: 50%; font-size: 12px; text-align: center; line-height: 18px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1890FF; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; margin-right: 10px; }
+    .user-name { font-size: 14px; font-weight: 500; }
+
+    /* 通用看板样式 */
+    .kanban-header { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; }
+    .kanban-filter-group { flex: 1; min-width: 150px; }
+    .kanban-filter-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
+    .kanban-filter-group select, .kanban-filter-group input { width: 100%; }
+    .kanban-action-group { display: flex; gap: 10px; align-self: flex-end; }
+
+    /* 服务对象看板专属样式 */
+    .object-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .region-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .region-item { margin-bottom: 15px; }
+    .region-title { font-weight: 600; font-size: 14px; color: #1890FF; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #f0f0f0; }
+    .object-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .object-item:hover { background-color: #f5fafe; }
+    .object-item.normal { color: #52C41A; }
+    .object-item.paused { color: #FAAD14; }
+    .object-item.deceased { color: #FF4D4F; }
+    .object-item.transferred { color: #999; }
+    .object-info { font-size: 13px; }
+    .object-status-tag { margin-left: 5px; font-size: 11px; }
+
+    .calendar-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .calendar-header { display: flex; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 10px; }
+    .calendar-date { flex: 1; text-align: center; font-weight: 500; font-size: 13px; }
+    .calendar-row { display: flex; border-bottom: 1px solid #f0f0f0; }
+    .calendar-cell { flex: 1; height: 40px; border-right: 1px solid #f0f0f0; position: relative; }
+    .calendar-cell:last-child { border-right: none; }
+    .task-block { position: absolute; left: 2px; right: 2px; top: 2px; bottom: 2px; border-radius: 4px; cursor: pointer; overflow: hidden; font-size: 11px; padding: 2px; white-space: nowrap; text-overflow: ellipsis; }
+    .task-block.unstarted { background-color: #e9ecef; color: #666; }
+    .task-block.expired { background-color: #fff1f0; color: #FF4D4F; }
+    .task-block.completed { background-color: #e6f7ef; color: #52C41A; }
+
+    .summary-section { margin-top: 20px; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .summary-title { font-weight: 600; margin-bottom: 10px; font-size: 14px; }
+    .summary-table { width: 100%; border-collapse: collapse; }
+    .summary-table th, .summary-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: left; font-size: 13px; }
+    .summary-table th { background-color: #f8f9fa; font-weight: 500; }
+    .summary-value.over { color: #FF4D4F; font-weight: 600; }
+    .summary-value.equal { color: #FAAD14; font-weight: 600; }
+    .summary-value.normal { color: #333; font-weight: 600; }
+
+    /* 护理员看板专属样式 */
+    .caregiver-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .leader-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .leader-item { margin-bottom: 15px; }
+    .leader-title { font-weight: 600; font-size: 14px; color: #1890FF; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #f0f0f0; }
+    .caregiver-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .caregiver-item:hover { background-color: #f5fafe; }
+    .caregiver-info { font-size: 13px; display: flex; justify-content: space-between; }
+    .expand-btn { font-size: 11px; color: #1890FF; cursor: pointer; }
+
+    .caregiver-data-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: center; font-size: 13px; }
+    .data-table th { background-color: #f8f9fa; font-weight: 500; }
+    .load-ranking-section { margin-top: 20px; }
+    .ranking-list { list-style: none; padding: 0; margin: 0; }
+    .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .ranking-num { width: 20px; text-align: center; font-weight: 600; color: #1890FF; }
+    .ranking-name { flex: 1; margin-left: 10px; }
+    .ranking-value { font-weight: 600; color: #333; }
+
+    /* 运营总体看板专属样式 */
+    .operation-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .area-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .area-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+    .area-item:hover { background-color: #f5fafe; }
+    .area-checkbox { margin-right: 8px; }
+    .area-name { font-size: 13px; flex: 1; }
+    .area-tag { font-size: 11px; color: #fff; background-color: #FAAD14; padding: 2px 5px; border-radius: 3px; }
+
+    .area-data-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .data-card-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+    .data-card { flex: 1; min-width: 200px; background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .data-card-header { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #333; }
+    .data-card-value { font-size: 24px; font-weight: 600; color: #1890FF; margin-bottom: 5px; }
+    .data-card-desc { font-size: 12px; color: #666; }
+    .completion-rate { font-size: 18px; color: #52C41A; }
+
+    .total-summary-card { background-color: #e6f7ff; border-color: #91d5ff; }
+    .total-summary-card .data-card-header { color: #096dd9; }
+    .total-summary-card .data-card-value { color: #096dd9; }
+
+    .area-ranking-section { margin-top: 20px; }
+
+    /* 弹窗样式 */
+    .detail-modal .modal-dialog { max-width: 600px; }
+    .detail-modal .modal-body { padding: 20px; }
+    .detail-title { font-weight: 600; margin-bottom: 15px; font-size: 14px; }
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table th, .detail-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: left; font-size: 13px; }
+    .detail-table th { background-color: #f8f9fa; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边导航（机构负责人版） -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="https://via.placeholder.com/80x40?text=居家长护" alt="系统Logo">
+        <h3>机构负责人工作平台</h3>
+      </div>
+      
+      <!-- 导航分组：看板管理（全机构） -->
+      <div class="nav-group-title">看板管理（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#service-object-kanban" class="nav-link active kanban-tab-link" data-tab="service-object">
+            <i class="fa fa-user-o"></i>
+            <span>服务对象看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#caregiver-kanban" class="nav-link kanban-tab-link" data-tab="caregiver">
+            <i class="fa fa-user-md"></i>
+            <span>护理员看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#operation-kanban" class="nav-link kanban-tab-link" data-tab="operation">
+            <i class="fa fa-dashboard"></i>
+            <span>运营总体看板</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：审批管理 -->
+      <div class="nav-group-title">审批管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-check-square-o"></i>
+            <span>首月计划审批</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-list-alt"></i>
+            <span>已审批计划查询</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：系统管理 -->
+      <div class="nav-group-title">系统管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-cog"></i>
+            <span>机构服务配置</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-users"></i>
+            <span>人员权限管理</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 顶部导航：标题 + 用户信息 -->
+      <div class="top-nav">
+        <h1 class="page-title" id="kanbanPageTitle">服务对象看板（全机构）</h1>
+        <div class="user-info">
+          <div class="notification">
+            <i class="fa fa-bell-o"></i>
+            <span class="notification-badge">2</span>
+          </div>
+          <div class="user-avatar">负</div>
+          <div class="user-name">机构负责人</div>
+        </div>
+      </div>
+
+      <!-- 服务对象看板（默认显示） -->
+      <div id="serviceObjectKanban" class="kanban-tab-content">
+        <!-- 看板顶部筛选栏 -->
+        <div class="kanban-header">
+          <div class="kanban-filter-group">
+            <label for="objectMonth">选择月份</label>
+            <input type="month" class="form-control" id="objectMonth" value="2024-09">
+          </div>
+          <div class="kanban-filter-group">
+            <label for="objectStatus">服务状态</label>
+            <select class="form-select" id="objectStatus">
+              <option value="all">全部状态</option>
+              <option value="normal">正常</option>
+              <option value="paused">暂停</option>
+              <option value="deceased">死亡</option>
+              <option value="transferred">转出</option>
+            </select>
+          </div>
+          <div class="kanban-filter-group">
+            <label for="disabilityLevel">失能等级</label>
+            <select class="form-select" id="disabilityLevel">
+              <option value="all">全部等级</option>
+              <option value="一级">一级</option>
+              <option value="二级">二级</option>
+              <option value="三级">三级</option>
+            </select>
+          </div>
+          <div class="kanban-filter-group">
+            <label for="objectRegion">行政区域</label>
+            <select class="form-select" id="objectRegion">
+              <option value="all">所有区域</option>
+              <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+              <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+              <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+              <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+            </select>
+          </div>
+          <div class="kanban-action-group">
+            <button class="btn btn-outline-secondary" id="refreshObjectKanban">
+              <i class="fa fa-refresh"></i> 刷新
+            </button>
+            <button class="btn btn-primary" id="exportObjectKanban">
+              <i class="fa fa-download"></i> 导出数据
+            </button>
+          </div>
+        </div>
+
+        <!-- 看板核心展示区 -->
+        <div class="object-kanban-container">
+          <!-- 左侧：行政区域分组列表 -->
+          <div class="region-list">
+            <!-- 石璜镇 -->
+            <div class="region-item">
+              <div class="region-title">绍兴市嵊州市-石璜镇</div>
+              <div class="object-item normal">
+                <div class="object-info">
+                  陈一（男/一级）<span class="badge bg-success object-status-tag">正常</span>
+                  <br><small>石璜镇XX村123号</small>
+                </div>
+              </div>
+              <div class="object-item normal">
+                <div class="object-info">
+                  吴二（女/二级）<span class="badge bg-success object-status-tag">正常</span>
+                  <br><small>石璜镇XX村456号</small>
+                </div>
+              </div>
+              <div class="object-item paused">
+                <div class="object-info">
+                  郑三（男/三级）<span class="badge bg-warning object-status-tag">暂停</span>
+                  <br><small>石璜镇XX村789号</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- 长乐镇 -->
+            <div class="region-item">
+              <div class="region-title">绍兴市嵊州市-长乐镇</div>
+              <div class="object-item normal">
+                <div class="object-info">
+                  钱五（男/一级）<span class="badge bg-success object-status-tag">正常</span>
+                  <br><small>长乐镇XX路321号</small>
+                </div>
+              </div>
+              <div class="object-item deceased">
+                <div class="object-info">
+                  冯四（女/二级）<span class="badge bg-danger object-status-tag">死亡</span>
+                  <br><small>长乐镇XX路654号</small>
+                </div>
+              </div>
+              <div class="object-item transferred">
+                <div class="object-info">
+                  赵六（男/三级）<span class="badge bg-secondary object-status-tag">转出</span>
+                  <br><small>长乐镇XX路987号</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- 甘霖镇 -->
+            <div class="region-item">
+              <div class="region-title">绍兴市嵊州市-甘霖镇</div>
+              <div class="object-item normal">
+                <div class="object-info">
+                  孙七（女/一级）<span class="badge bg-success object-status-tag">正常</span>
+                  <br><small>甘霖镇XX街111号</small>
+                </div>
+              </div>
+              <div class="object-item normal">
+                <div class="object-info">
+                  周八（男/二级）<span class="badge bg-success object-status-tag">正常</span>
+                  <br><small>甘霖镇XX街222号</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：月度日历视图 -->
+          <div class="calendar-view">
+            <div class="calendar-header">
+              <div class="calendar-date">1</div>
+              <div class="calendar-date">2</div>
+              <div class="calendar-date">3</div>
+              <div class="calendar-date">4</div>
+              <div class="calendar-date">5</div>
+              <div class="calendar-date">6</div>
+              <div class="calendar-date">7</div>
+              <div class="calendar-date">8</div>
+              <div class="calendar-date">9</div>
+              <div class="calendar-date">10</div>
+              <div class="calendar-date">11</div>
+              <div class="calendar-date">12</div>
+              <div class="calendar-date">13</div>
+              <div class="calendar-date">14</div>
+              <div class="calendar-date">15</div>
+              <div class="calendar-date">16</div>
+              <div class="calendar-date">17</div>
+              <div class="calendar-date">18</div>
+              <div class="calendar-date">19</div>
+              <div class="calendar-date">20</div>
+              <div class="calendar-date">21</div>
+              <div class="calendar-date">22</div>
+              <div class="calendar-date">23</div>
+              <div class="calendar-date">24</div>
+              <div class="calendar-date">25</div>
+              <div class="calendar-date">26</div>
+              <div class="calendar-date">27</div>
+              <div class="calendar-date">28</div>
+              <div class="calendar-date">29</div>
+              <div class="calendar-date">30</div>
+            </div>
+
+            <!-- 陈一的工单行 -->
+            <div class="calendar-row" title="陈一（男/一级）">
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="李护理 | 基础套餐 | 签入08:00 签出10:00">李</div></div>
+            </div>
+
+            <!-- 吴二的工单行 -->
+            <div class="calendar-row" title="吴二（女/二级）">
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block completed" title="王护理 | 进阶套餐 | 签入09:00 签出11:30">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block expired" title="王护理 | 进阶套餐 | 未执行">王</div></div>
+              <div class="calendar-cell"></div>
+              <div class="calendar-cell"><div class="task-block unstarted" title="王护理 | 进阶套餐 | 未到时间">王</div></div>
+            </div>
+
+            <!-- 更多服务对象行... -->
+          </div>
+        </div>
+
+        <!-- 底部汇总区 -->
+        <div class="summary-section">
+          <div class="summary-title">全机构当月服务时长汇总（按失能等级）</div>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>失能等级</th>
+                <th>服务对象数</th>
+                <th>月度上限总时长（小时）</th>
+                <th>已完成总时长（小时）</th>
+                <th>完成率</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>一级（重度）</td>
+                <td>15</td>
+                <td>300（20小时/人）</td>
+                <td class="summary-value normal">290</td>
+                <td>96.7%</td>
+                <td><span class="badge bg-dark">正常</span></td>
+              </tr>
+              <tr>
+                <td>二级（重度）</td>
+                <td>12</td>
+                <td>300（25小时/人）</td>
+                <td class="summary-value equal">300</td>
+                <td>100%</td>
+                <td><span class="badge bg-warning">达标</span></td>
+              </tr>
+              <tr>
+                <td>三级（重度）</td>
+                <td>8</td>
+                <td>240（30小时/人）</td>
+                <td class="summary-value over">250</td>
+                <td>104.2%</td>
+                <td><span class="badge bg-danger">超量</span></td>
+              </tr>
+              <tr class="table-primary">
+                <td><strong>合计</strong></td>
+                <td><strong>35</strong></td>
+                <td><strong>840</strong></td>
+                <td><strong>840</strong></td>
+                <td><strong>100%</strong></td>
+                <td><strong>-</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 护理员看板（默认隐藏） -->
+      <div id="caregiverKanban" class="kanban-tab-content d-none">
+        <!-- 看板顶部筛选栏 -->
+        <div class="kanban-header">
+          <div class="kanban-filter-group">
+            <label for="caregiverMonth">选择月份</label>
+            <input type="month" class="form-control" id="caregiverMonth" value="2024-09">
+          </div>
+          <div class="kanban-filter-group">
+            <label for="caregiverName">护理员姓名</label>
+            <input type="text" class="form-control" id="caregiverName" placeholder="请输入姓名">
+          </div>
+          <div class="kanban-filter-group">
+            <label for="caregiverLeader">服务主管</label>
+            <select class="form-select" id="caregiverLeader">
+              <option value="all">全部主管</option>
+              <option value="主管A">主管A</option>
+              <option value="主管B">主管B</option>
+              <option value="主管C">主管C</option>
+            </select>
+          </div>
+          <div class="kanban-filter-group">
+            <label for="caregiverStatus">账号状态</label>
+            <select class="form-select" id="caregiverStatus">
+              <option value="all">全部状态</option>
+              <option value="normal">正常</option>
+              <option value="locked">锁定</option>
+            </select>
+          </div>
+          <div class="kanban-action-group">
+            <button class="btn btn-outline-secondary" id="refreshCaregiverKanban">
+              <i class="fa fa-refresh"></i> 刷新
+            </button>
+            <button class="btn btn-primary" id="exportCaregiverKanban">
+              <i class="fa fa-download"></i> 导出数据
+            </button>
+          </div>
+        </div>
+
+        <!-- 看板核心展示区 -->
+        <div class="caregiver-kanban-container">
+          <!-- 左侧：服务主管分组列表 -->
+          <div class="leader-list">
+            <!-- 主管A -->
+            <div class="leader-item">
+              <div class="leader-title">主管A</div>
+              <div class="caregiver-item" id="caregiver1">
+                <div class="caregiver-info">
+                  <span>李护理</span>
+                  <span class="expand-btn" data-id="1">展开</span>
+                </div>
+                <div id="caregiver1Detail" class="d-none mt-2">
+                  <div class="text-muted small">
+                    陈一：应服务20h / 已服务19h / 剩余1h<br>
+                    郑三：应服务30h / 已服务0h / 剩余30h<br>
+                    孙七：应服务20h / 已服务18h / 剩余2h
+                  </div>
+                </div>
+              </div>
+              <div class="caregiver-item" id="caregiver2">
+                <div class="caregiver-info">
+                  <span>王护理</span>
+                  <span class="expand-btn" data-id="2">展开</span>
+                </div>
+                <div id="caregiver2Detail" class="d-none mt-2">
+                  <div class="text-muted small">
+                    吴二：应服务25h / 已服务25h / 剩余0h<br>
+                    冯四：应服务25h / 已服务10h / 剩余15h<br>
+                    周八：应服务25h / 已服务22h / 剩余3h
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 主管B -->
+            <div class="leader-item">
+              <div class="leader-title">主管B</div>
+              <div class="caregiver-item" id="caregiver3">
+                <div class="caregiver-info">
+                  <span>张护理</span>
+                  <span class="expand-btn" data-id="3">展开</span>
+                </div>
+                <div id="caregiver3Detail" class="d-none mt-2">
+                  <div class="text-muted small">
+                    钱五：应服务20h / 已服务20h / 剩余0h<br>
+                    赵六：应服务30h / 已服务5h / 剩余25h
+                  </div>
+                </div>
+              </div>
+              <div class="caregiver-item" id="caregiver4">
+                <div class="caregiver-info">
+                  <span>赵护理</span>
+                  <span class="expand-btn" data-id="4">展开</span>
+                </div>
+                <div id="caregiver4Detail" class="d-none mt-2">
+                  <div class="text-muted small">
+                    暂无服务对象
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧：护理员数据视图 -->
+          <div class="caregiver-data-view">
+            <h5 class="mb-3">李护理 - 2024年9月数据</h5>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>计划服务人数</th>
+                  <th>计划服务时长（小时）</th>
+                  <th>正常工单数</th>
+                  <th>正常时长（小时）</th>
+                  <th>异常工单数</th>
+                  <th>异常时长（小时）</th>
+                  <th>作废工单数</th>
+                  <th>作废时长（小时）</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>9/1</td>
+                  <td class="data-item" data-id="1-1">3</td>
+                  <td>6</td>
+                  <td>3</td>
+                  <td>6</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>9/2</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>9/3</td>
+                  <td class="data-item" data-id="1-3">3</td>
+                  <td>6</td>
+                  <td>3</td>
+                  <td>6</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>9/4</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>9/5</td>
+                  <td class="data-item" data-id="1-5">3</td>
+                  <td>6</td>
+                  <td>2</td>
+                  <td>4</td>
+                  <td>1</td>
+                  <td>2</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr class="table-primary">
+                  <td><strong>月度合计</strong></td>
+                  <td><strong>60</strong></td>
+                  <td><strong>120</strong></td>
+                  <td><strong>58</strong></td>
+                  <td><strong>116</strong></td>
+                  <td><strong>2</strong></td>
+                  <td><strong>4</strong></td>
+                  <td><strong>0</strong></td>
+                  <td><strong>0</strong></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- 护理员负荷排名 -->
+            <div class="load-ranking-section mt-4">
+              <h5 class="mb-3">全机构护理员9月负荷排名（按实际时长）</h5>
+              <ul class="ranking-list">
+                <li class="ranking-item">
+                  <span class="ranking-num">1</span>
+                  <span class="ranking-name">李护理</span>
+                  <span class="ranking-value">116小时（负荷率96.7%）</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">2</span>
+                  <span class="ranking-name">王护理</span>
+                  <span class="ranking-value">105小时（负荷率87.5%）</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">3</span>
+                  <span class="ranking-name">张护理</span>
+                  <span class="ranking-value">88小时（负荷率73.3%）</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">4</span>
+                  <span class="ranking-name">赵护理</span>
+                  <span class="ranking-value">20小时（负荷率16.7%）</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部汇总区 -->
+        <div class="summary-section">
+          <div class="summary-title">全机构护理员9月数据汇总</div>
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>统计项</th>
+                <th>数值</th>
+                <th>说明</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>总计划服务时长</td>
+                <td><strong>480小时</strong></td>
+                <td>全机构4名护理员月度计划总和</td>
+              </tr>
+              <tr>
+                <td>总实际服务时长</td>
+                <td><strong>329小时</strong></td>
+                <td>正常工单+异常工单时长总和</td>
+              </tr>
+              <tr>
+                <td>异常工单占比</td>
+                <td><strong>3.1%</strong></td>
+                <td>异常工单数/总工单数</td>
+              </tr>
+              <tr>
+                <td>平均负荷率</td>
+                <td><strong>68.5%</strong></td>
+                <td>总实际时长/总计划时长</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 运营总体看板（默认隐藏） -->
+      <div id="operationKanban" class="kanban-tab-content d-none">
+        <!-- 看板顶部筛选栏 -->
+        <div class="kanban-header">
+          <div class="kanban-filter-group">
+            <label for="operationMonth">选择月份</label>
+            <input type="month" class="form-control" id="operationMonth" value="2024-09">
+          </div>
+          <div class="kanban-filter-group">
+            <label for="areaType">区域类型</label>
+            <select class="form-select" id="areaType">
+              <option value="all">全部区域</option>
+              <option value="normal">普通区域</option>
+              <option value="focus">特别关注区域</option>
+            </select>
+          </div>
+          <div class="kanban-action-group">
+            <button class="btn btn-outline-secondary" id="refreshOperationKanban">
+              <i class="fa fa-refresh"></i> 刷新
+            </button>
+            <button class="btn btn-primary" id="exportOperationKanban">
+              <i class="fa fa-download"></i> 导出数据
+            </button>
+          </div>
+        </div>
+
+        <!-- 看板核心展示区 -->
+        <div class="operation-kanban-container">
+          <!-- 左侧：全机构区域列表 -->
+          <div class="area-list">
+            <div class="area-item">
+              <input type="checkbox" class="area-checkbox" id="area1" value="绍兴市嵊州市-石璜镇">
+              <label for="area1" class="area-name">绍兴市嵊州市-石璜镇</label>
+            </div>
+            <div class="area-item">
+              <input type="checkbox" class="area-checkbox" id="area2" value="绍兴市嵊州市-长乐镇">
+              <label for="area2" class="area-name">绍兴市嵊州市-长乐镇 <span class="area-tag">特别关注</span></label>
+            </div>
+            <div class="area-item">
+              <input type="checkbox" class="area-checkbox" id="area3" value="绍兴市嵊州市-甘霖镇">
+              <label for="area3" class="area-name">绍兴市嵊州市-甘霖镇</label>
+            </div>
+            <div class="area-item">
+              <input type="checkbox" class="area-checkbox" id="area4" value="绍兴市嵊州市-崇仁镇">
+              <label for="area4" class="area-name">绍兴市嵊州市-崇仁镇 <span class="area-tag">特别关注</span></label>
+            </div>
+          </div>
+
+          <!-- 右侧：区域数据视图 -->
+          <div class="area-data-view">
+            <!-- 区域数据卡片 -->
+            <div class="data-card-container">
+              <!-- 石璜镇 -->
+              <div class="data-card" id="areaCard1" onclick="jumpToObjectKanban('绍兴市嵊州市-石璜镇')">
+                <div class="data-card-header">绍兴市嵊州市-石璜镇</div>
+                <div class="data-card-value">12</div>
+                <div class="data-card-desc">可服务人数（正常状态）</div>
+                <div class="data-card-value mt-2">280小时</div>
+                <div class="data-card-desc">总计可服务时长</div>
+                <div class="data-card-value mt-2 completion-rate">98.2%</div>
+                <div class="data-card-desc">完成率</div>
+              </div>
+
+              <!-- 长乐镇（特别关注） -->
+              <div class="data-card" id="areaCard2" onclick="jumpToObjectKanban('绍兴市嵊州市-长乐镇')">
+                <div class="data-card-header">绍兴市嵊州市-长乐镇 <span class="area-tag">特别关注</span></div>
+                <div class="data-card-value">8</div>
+                <div class="data-card-desc">可服务人数（正常状态）</div>
+                <div class="data-card-value mt-2">200小时</div>
+                <div class="data-card-desc">总计可服务时长</div>
+                <div class="data-card-value mt-2 completion-rate">85.5%</div>
+                <div class="data-card-desc">完成率</div>
+              </div>
+
+              <!-- 甘霖镇 -->
+              <div class="data-card" id="areaCard3" onclick="jumpToObjectKanban('绍兴市嵊州市-甘霖镇')">
+                <div class="data-card-header">绍兴市嵊州市-甘霖镇</div>
+                <div class="data-card-value">10</div>
+                <div class="data-card-desc">可服务人数（正常状态）</div>
+                <div class="data-card-value mt-2">240小时</div>
+                <div class="data-card-desc">总计可服务时长</div>
+                <div class="data-card-value mt-2 completion-rate">99.1%</div>
+                <div class="data-card-desc">完成率</div>
+              </div>
+
+              <!-- 崇仁镇（特别关注） -->
+              <div class="data-card" id="areaCard4" onclick="jumpToObjectKanban('绍兴市嵊州市-崇仁镇')">
+                <div class="data-card-header">绍兴市嵊州市-崇仁镇 <span class="area-tag">特别关注</span></div>
+                <div class="data-card-value">5</div>
+                <div class="data-card-desc">可服务人数（正常状态）</div>
+                <div class="data-card-value mt-2">120小时</div>
+                <div class="data-card-desc">总计可服务时长</div>
+                <div class="data-card-value mt-2 completion-rate">78.3%</div>
+                <div class="data-card-desc">完成率</div>
+              </div>
+
+              <!-- 全机构汇总 -->
+              <div class="data-card total-summary-card">
+                <div class="data-card-header">全机构汇总</div>
+                <div class="data-card-value">35</div>
+                <div class="data-card-desc">总可服务人数（正常状态）</div>
+                <div class="data-card-value mt-2">840小时</div>
+                <div class="data-card-desc">总可服务时长</div>
+                <div class="data-card-value mt-2 completion-rate">92.5%</div>
+                <div class="data-card-desc">整体完成率</div>
+              </div>
+            </div>
+
+            <!-- 区域完成率排名 -->
+            <div class="area-ranking-section mt-4">
+              <h5 class="mb-3">区域完成率排名（2024年9月）</h5>
+              <ul class="ranking-list">
+                <li class="ranking-item">
+                  <span class="ranking-num">1</span>
+                  <span class="ranking-name">绍兴市嵊州市-甘霖镇</span>
+                  <span class="ranking-value">99.1%</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">2</span>
+                  <span class="ranking-name">绍兴市嵊州市-石璜镇</span>
+                  <span class="ranking-value">98.2%</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">3</span>
+                  <span class="ranking-name">绍兴市嵊州市-长乐镇</span>
+                  <span class="ranking-value">85.5%</span>
+                </li>
+                <li class="ranking-item">
+                  <span class="ranking-num">4</span>
+                  <span class="ranking-name">绍兴市嵊州市-崇仁镇</span>
+                  <span class="ranking-value">78.3%</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据详情弹窗 -->
+      <div class="modal fade detail-modal" id="dataDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="detailModalTitle">计划服务人数详情（9月1日）</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="detail-title">李护理9月1日计划服务对象</div>
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>失能等级</th>
+                    <th>服务日期</th>
+                    <th>计划时长（小时）</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>陈一</td>
+                    <td>一级</td>
+                    <td>2024-09-01</td>
+                    <td>2</td>
+                  </tr>
+                  <tr>
+                    <td>郑三</td>
+                    <td>三级</td>
+                    <td>2024-09-01</td>
+                    <td>2</td>
+                  </tr>
+                  <tr>
+                    <td>孙七</td>
+                    <td>一级</td>
+                    <td>2024-09-01</td>
+                    <td>2</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(function() {
+      // 初始化模态框
+      const dataDetailModal = new bootstrap.Modal('#dataDetailModal');
+      
+      // 看板标签切换
+      $('.kanban-tab-link').click(function(e) {
+        e.preventDefault();
+        
+        // 移除所有激活状态
+        $('.kanban-tab-link').removeClass('active');
+        $('.kanban-tab-content').addClass('d-none');
+        
+        // 添加当前激活状态
+        $(this).addClass('active');
+        const tabType = $(this).data('tab');
+        
+        // 显示对应看板
+        if (tabType === 'service-object') {
+          $('#serviceObjectKanban').removeClass('d-none');
+          $('#kanbanPageTitle').text('服务对象看板（全机构）');
+        } else if (tabType === 'caregiver') {
+          $('#caregiverKanban').removeClass('d-none');
+          $('#kanbanPageTitle').text('护理员看板（全机构）');
+        } else if (tabType === 'operation') {
+          $('#operationKanban').removeClass('d-none');
+          $('#kanbanPageTitle').text('运营总体看板（全机构）');
+        }
+      });
+      
+      // 护理员展开/折叠按钮
+      $('.expand-btn').click(function() {
+        const id = $(this).data('id');
+        const $detail = $(`#caregiver${id}Detail`);
+        
+        if ($detail.hasClass('d-none')) {
+          $detail.removeClass('d-none');
+          $(this).text('折叠');
+        } else {
+          $detail.addClass('d-none');
+          $(this).text('展开');
+        }
+      });
+      
+      // 数据项悬停弹窗（模拟）
+      $('.data-item').hover(function() {
+        // 实际项目中可根据data-id加载不同详情
+        $('#detailModalTitle').text(`计划服务人数详情（9月${$(this).data('id').split('-')[1]}日）`);
+        // 显示弹窗（实际项目中改为悬停显示，这里简化为点击）
+      }).click(function() {
+        dataDetailModal.show();
+      });
+      
+      // 导出数据按钮点击事件
+      $('#exportObjectKanban, #exportCaregiverKanban, #exportOperationKanban').click(function() {
+        const btnId = $(this).attr('id');
+        let fileName = '';
+        
+        if (btnId === 'exportObjectKanban') {
+          fileName = `全机构服务对象看板数据_${$('#objectMonth').val()}.xlsx`;
+        } else if (btnId === 'exportCaregiverKanban') {
+          fileName = `全机构护理员看板数据_${$('#caregiverMonth').val()}.xlsx`;
+        } else {
+          fileName = `全机构运营总体看板数据_${$('#operationMonth').val()}.xlsx`;
+        }
+        
+        // 模拟导出
+        alert(`正在导出数据：${fileName}\n实际项目中会生成并下载Excel文件`);
+      });
+      
+      // 刷新按钮点击事件
+      $('#refreshObjectKanban, #refreshCaregiverKanban, #refreshOperationKanban').click(function() {
+        alert('正在刷新看板数据...\n数据已更新至最新状态');
+      });
+      
+      // 服务对象看板筛选事件
+      $('#objectStatus, #disabilityLevel, #objectRegion, #objectMonth').change(function() {
+        // 模拟筛选逻辑
+        alert(`已应用筛选条件：\n月份：${$('#objectMonth').val()}\n服务状态：${$('#objectStatus option:selected').text()}\n失能等级：${$('#disabilityLevel option:selected').text()}\n行政区域：${$('#objectRegion option:selected').text()}`);
+      });
+      
+      // 护理员看板筛选事件
+      $('#caregiverName, #caregiverLeader, #caregiverStatus, #caregiverMonth').change(function() {
+        // 模拟筛选逻辑
+        alert(`已应用筛选条件：\n月份：${$('#caregiverMonth').val()}\n护理员姓名：${$('#caregiverName').val() || '不限'}\n服务主管：${$('#caregiverLeader option:selected').text()}\n账号状态：${$('#caregiverStatus option:selected').text()}`);
+      });
+      
+      // 运营总体看板筛选事件
+      $('#areaType, #operationMonth').change(function() {
+        // 模拟筛选逻辑
+        alert(`已应用筛选条件：\n月份：${$('#operationMonth').val()}\n区域类型：${$('#areaType option:selected').text()}`);
+      });
+    });
+    
+    // 跳转至指定区域的服务对象看板
+    function jumpToObjectKanban(region) {
+      // 切换到服务对象看板
+      $('.kanban-tab-link[data-tab="service-object"]').click();
+      
+      // 设置区域筛选条件
+      $('#objectRegion').val(region);
+      
+      // 触发筛选
+      $('#objectRegion').change();
+      
+      alert(`已跳转至【${region}】的服务对象看板`);
+    }
+  </script>
+</body>
+</html>

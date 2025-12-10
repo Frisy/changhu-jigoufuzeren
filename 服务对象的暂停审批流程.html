@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>机构负责人平台 - 服务对象暂停审批</title>
+  <!-- 引入外部资源 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  
+  <style>
+    /* 基础样式 */
+    body { font-family: "微软雅黑", "思源黑体", sans-serif; background-color: #f5f7fa; color: #333; margin: 0; padding: 0; }
+    .btn-primary { background-color: #1890FF; border-color: #1890FF; }
+    .btn-primary:hover { background-color: #096DD9; border-color: #096DD9; }
+    .btn-outline-secondary { border-color: #ddd; color: #666; }
+    .btn-outline-secondary:hover { background-color: #f5f5f5; border-color: #ccc; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #fff; border-bottom: 1px solid #f0f0f0; border-radius: 12px 12px 0 0; padding: 15px 20px; font-weight: 600; font-size: 15px; }
+    .card-body { padding: 20px; }
+    .badge { font-size: 12px; }
+
+    /* 布局样式 */
+    .app-container { display: flex; min-height: 100vh; }
+    /* 侧边导航 */
+    .sidebar { width: 220px; background: #fff; box-shadow: 1px 0 2px rgba(0,0,0,0.05); padding: 20px 0; flex-shrink: 0; }
+    .sidebar-logo { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #f0f0f0; margin-bottom: 20px; }
+    .sidebar-logo img { height: 40px; margin-bottom: 8px; }
+    .sidebar-logo h3 { font-size: 16px; color: #1890FF; font-weight: 600; margin: 0; }
+    .nav-menu { list-style: none; padding: 0; margin: 0; }
+    .nav-item { margin-bottom: 4px; }
+    .nav-link { display: flex; align-items: center; padding: 12px 20px; color: #666; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: #1890FF; background-color: #f0f7ff; border-left: 3px solid #1890FF; }
+    .nav-link i { font-size: 18px; margin-right: 12px; width: 20px; text-align: center; }
+    .nav-group-title { padding: 15px 20px 5px; font-size: 12px; color: #999; font-weight: 500; }
+
+    /* 主内容区 */
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    /* 顶部导航 */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #333; margin: 0; }
+    .user-info { display: flex; align-items: center; }
+    .notification { position: relative; margin-right: 20px; cursor: pointer; }
+    .notification i { font-size: 20px; color: #666; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #FF4D4F; color: #fff; border-radius: 50%; font-size: 12px; text-align: center; line-height: 18px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1890FF; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; margin-right: 10px; }
+    .user-name { font-size: 14px; font-weight: 500; }
+
+    /* 看板筛选样式 */
+    .kanban-header { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; }
+    .kanban-filter-group { flex: 1; min-width: 150px; }
+    .kanban-filter-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
+    .kanban-filter-group select, .kanban-filter-group input { width: 100%; }
+    .kanban-action-group { display: flex; gap: 10px; align-self: flex-end; }
+
+    /* 档案列表样式 */
+    .archive-list-table { width: 100%; border-collapse: collapse; }
+    .archive-list-table th, .archive-list-table td { border: 1px solid #f0f0f0; padding: 10px; text-align: left; font-size: 14px; }
+    .archive-list-table th { background-color: #f8f9fa; font-weight: 600; }
+    .archive-list-table tr:hover { background-color: #f8f9fa; }
+
+    /* 暂停审批相关样式 */
+    .suspension-approval-container .alert {
+      font-size: 14px;
+      padding: 12px 15px;
+    }
+
+    #suspensionDetailModal .card {
+      margin-bottom: 15px;
+    }
+
+    #suspensionDetailModal .card-header {
+      font-weight: 600;
+      font-size: 14px;
+      padding: 10px 15px;
+    }
+
+    #suspensionDetailModal .material-preview {
+      margin-bottom: 10px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 15px;
+    }
+
+    .service-stats-table { width: 100%; border-collapse: collapse; }
+    .service-stats-table th, .service-stats-table td { border: 1px solid #f0f0f0; padding: 8px; text-align: center; font-size: 13px; }
+    .service-stats-table th { background-color: #f8f9fa; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边导航 -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="https://via.placeholder.com/80x40?text=居家长护" alt="系统Logo">
+        <h3>机构负责人工作平台</h3>
+      </div>
+      
+      <!-- 导航分组：看板管理 -->
+      <div class="nav-group-title">看板管理（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-user-o"></i>
+            <span>服务对象看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-user-md"></i>
+            <span>护理员看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-dashboard"></i>
+            <span>运营总体看板</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：统计分析 -->
+      <div class="nav-group-title">统计分析（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-bar-chart"></i>
+            <span>综合统计</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：档案管理 -->
+      <div class="nav-group-title">档案管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-file-text-o"></i>
+            <span>全机构档案查询</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：审批管理 -->
+      <div class="nav-group-title">审批管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-check-square-o"></i>
+            <span>首月计划审批</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-list-alt"></i>
+            <span>已审批计划查询</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link active">
+            <i class="fa fa-pause-circle-o"></i>
+            <span>服务对象暂停审批</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：系统管理 -->
+      <div class="nav-group-title">系统管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-cog"></i>
+            <span>机构服务配置</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-users"></i>
+            <span>人员权限管理</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 顶部导航 -->
+      <div class="top-nav">
+        <h1 class="page-title">服务对象暂停审批</h1>
+        <div class="user-info">
+          <div class="notification">
+            <i class="fa fa-bell-o"></i>
+            <span class="notification-badge">2</span>
+          </div>
+          <div class="user-avatar">负</div>
+          <div class="user-name">机构负责人</div>
+        </div>
+      </div>
+
+      <!-- 服务对象暂停审批列表 -->
+      <div id="suspensionApprovalContainer" class="suspension-approval-container">
+        <!-- 审批配置提示 -->
+        <div class="alert alert-info mb-4" role="alert">
+          <i class="fa fa-info-circle"></i> 
+          当前审批配置：服务对象暂停需机构负责人审批
+        </div>
+
+        <!-- 筛选区 -->
+        <div class="kanban-header">
+          <div class="kanban-filter-group">
+            <label>审批状态</label>
+            <select class="form-select" id="approvalStatusFilter">
+              <option value="all">全部状态</option>
+              <option value="pending">待审批</option>
+              <option value="approved">已通过</option>
+              <option value="rejected">已驳回</option>
+            </select>
+          </div>
+          <div class="kanban-filter-group">
+            <label>申请时间</label>
+            <input type="date" class="form-control" id="applyDateFilter">
+          </div>
+          <div class="kanban-filter-group">
+            <label>行政区域</label>
+            <select class="form-select" id="regionFilter">
+              <option value="all">所有区域</option>
+              <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+              <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+              <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+              <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+            </select>
+          </div>
+          <div class="kanban-filter-group">
+            <label>服务主管</label>
+            <select class="form-select" id="supervisorFilter">
+              <option value="all">所有主管</option>
+              <option value="张主管">张主管</option>
+              <option value="李主管">李主管</option>
+              <option value="王主管">王主管</option>
+            </select>
+          </div>
+          <div class="kanban-action-group">
+            <button class="btn btn-outline-secondary" id="resetFilterBtn">
+              <i class="fa fa-refresh"></i> 重置筛选
+            </button>
+            <button class="btn btn-primary" id="applyFilterBtn">
+              <i class="fa fa-filter"></i> 应用筛选
+            </button>
+          </div>
+        </div>
+
+        <!-- 审批列表表格 -->
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>服务对象暂停审批列表</span>
+            <button class="btn btn-outline-secondary" id="exportApprovalBtn">
+              <i class="fa fa-download"></i> 导出全机构审批记录
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="archive-list-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>申请人（护理员）</th>
+                    <th>服务对象</th>
+                    <th>暂停类型</th>
+                    <th>服务主管意见</th>
+                    <th>审批状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>李护理</td>
+                    <td>郑三</td>
+                    <td>短期暂停（医疗）</td>
+                    <td>情况属实，建议通过</td>
+                    <td><span class="badge bg-warning">待审批</span></td>
+                    <td>
+                      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#suspensionDetailModal">
+                        <i class="fa fa-eye"></i> 查看详情
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>王护理</td>
+                    <td>王五</td>
+                    <td>长期暂停（搬迁）</td>
+                    <td>资料齐全，同意暂停</td>
+                    <td><span class="badge bg-success">已通过</span></td>
+                    <td>
+                      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#suspensionDetailModalApproved">
+                        <i class="fa fa-eye"></i> 查看详情
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>张护理</td>
+                    <td>赵六</td>
+                    <td>短期暂停（旅游）</td>
+                    <td>理由不充分，建议驳回</td>
+                    <td><span class="badge bg-danger">已驳回</span></td>
+                    <td>
+                      <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#suspensionDetailModalRejected">
+                        <i class="fa fa-eye"></i> 查看详情
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 待审批详情弹窗 -->
+  <div class="modal fade" id="suspensionDetailModal" tabindex="-1" aria-labelledby="suspensionDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="suspensionDetailModalLabel">待机构审批 - 暂停申请 - 郑三</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- 申请基本信息 -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">申请基本信息</div>
+                <div class="card-body">
+                  <table class="service-stats-table w-100">
+                    <tbody>
+                      <tr>
+                        <th style="width: 30%;">申请编号</th>
+                        <td>SP202409001</td>
+                      </tr>
+                      <tr>
+                        <th>申请人（护理员）</th>
+                        <td>李护理</td>
+                      </tr>
+                      <tr>
+                        <th>服务对象</th>
+                        <td>郑三</td>
+                      </tr>
+                      <tr>
+                        <th>服务区域</th>
+                        <td>绍兴市嵊州市-长乐镇</td>
+                      </tr>
+                      <tr>
+                        <th>暂停类型</th>
+                        <td>短期暂停（医疗）</td>
+                      </tr>
+                      <tr>
+                        <th>暂停开始日期</th>
+                        <td>2024-09-10</td>
+                      </tr>
+                      <tr>
+                        <th>预计恢复日期</th>
+                        <td>2024-10-10</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">审批意见</div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">服务主管意见</label>
+                    <div class="border rounded p-2 bg-light">情况属实，患者因住院治疗需要暂停居家服务，建议通过审批。</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">机构负责人意见</label>
+                    <textarea class="form-control" rows="3" placeholder="请输入审批意见..."></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectReasonModal">
+            <i class="fa fa-times"></i> 驳回
+          </button>
+          <button type="button" class="btn btn-primary">
+            <i class="fa fa-check"></i> 通过
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 已通过详情弹窗 -->
+  <div class="modal fade" id="suspensionDetailModalApproved" tabindex="-1" aria-labelledby="suspensionDetailModalApprovedLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="suspensionDetailModalApprovedLabel">已通过 - 暂停申请 - 王五</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- 申请基本信息 -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">申请基本信息</div>
+                <div class="card-body">
+                  <table class="service-stats-table w-100">
+                    <tbody>
+                      <tr>
+                        <th style="width: 30%;">申请编号</th>
+                        <td>SP202409002</td>
+                      </tr>
+                      <tr>
+                        <th>申请人（护理员）</th>
+                        <td>王护理</td>
+                      </tr>
+                      <tr>
+                        <th>服务对象</th>
+                        <td>王五</td>
+                      </tr>
+                      <tr>
+                        <th>服务区域</th>
+                        <td>绍兴市嵊州市-甘霖镇</td>
+                      </tr>
+                      <tr>
+                        <th>暂停类型</th>
+                        <td>长期暂停（搬迁）</td>
+                      </tr>
+                      <tr>
+                        <th>暂停开始日期</th>
+                        <td>2024-09-01</td>
+                      </tr>
+                      <tr>
+                        <th>预计恢复日期</th>
+                        <td>无（长期暂停）</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">审批意见</div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">服务主管意见</label>
+                    <div class="border rounded p-2 bg-light">资料齐全，用户因搬迁外地，同意长期暂停服务。</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">机构负责人意见</label>
+                    <div class="border rounded p-2 bg-light">情况属实，同意暂停。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 暂停申请材料 -->
+          <div class="card mb-4">
+            <div class="card-header">暂停申请材料</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <div class="material-preview">
+                    <h6 class="mb-2">暂停申请表</h6>
+                    <img src="https://via.placeholder.com/400x300?text=暂停申请表" alt="暂停申请表" class="img-fluid">
+                    <div class="mt-2">
+                      <button class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i> 预览</button>
+                      <button class="btn btn-sm btn-outline-secondary"><i class="fa fa-download"></i> 下载</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="material-preview">
+                    <h6 class="mb-2">搬迁证明</h6>
+                    <img src="https://via.placeholder.com/400x300?text=搬迁证明" alt="搬迁证明" class="img-fluid">
+                    <div class="mt-2">
+                      <button class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i> 预览</button>
+                      <button class="btn btn-sm btn-outline-secondary"><i class="fa fa-download"></i> 下载</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 审批记录 -->
+          <div class="card">
+            <div class="card-header">审批记录</div>
+            <div class="card-body">
+              <table class="service-stats-table w-100">
+                <thead>
+                  <tr>
+                    <th>审批环节</th>
+                    <th>审批人</th>
+                    <th>审批意见</th>
+                    <th>审批结果</th>
+                    <th>审批时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>护理员发起</td>
+                    <td>王护理</td>
+                    <td>用户因搬迁申请长期暂停服务</td>
+                    <td>-</td>
+                    <td>2024-09-05 09:20:35</td>
+                  </tr>
+                  <tr>
+                    <td>服务主管审核</td>
+                    <td>李主管</td>
+                    <td>资料齐全，同意暂停</td>
+                    <td>同意</td>
+                    <td>2024-09-05 14:30:22</td>
+                  </tr>
+                  <tr>
+                    <td>机构负责人审批</td>
+                    <td>机构负责人</td>
+                    <td>情况属实，同意暂停</td>
+                    <td>通过</td>
+                    <td>2024-09-06 09:15:47</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fa fa-times"></i> 关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 已驳回详情弹窗 -->
+  <div class="modal fade" id="suspensionDetailModalRejected" tabindex="-1" aria-labelledby="suspensionDetailModalRejectedLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="suspensionDetailModalRejectedLabel">已驳回 - 暂停申请 - 赵六</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- 申请基本信息 -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">申请基本信息</div>
+                <div class="card-body">
+                  <table class="service-stats-table w-100">
+                    <tbody>
+                      <tr>
+                        <th style="width: 30%;">申请编号</th>
+                        <td>SP202409003</td>
+                      </tr>
+                      <tr>
+                        <th>申请人（护理员）</th>
+                        <td>张护理</td>
+                      </tr>
+                      <tr>
+                        <th>服务对象</th>
+                        <td>赵六</td>
+                      </tr>
+                      <tr>
+                        <th>服务区域</th>
+                        <td>绍兴市嵊州市-石璜镇</td>
+                      </tr>
+                      <tr>
+                        <th>暂停类型</th>
+                        <td>短期暂停（旅游）</td>
+                      </tr>
+                      <tr>
+                        <th>暂停开始日期</th>
+                        <td>2024-09-15</td>
+                      </tr>
+                      <tr>
+                        <th>预计恢复日期</th>
+                        <td>2024-09-30</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">审批意见</div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label class="form-label">服务主管意见</label>
+                    <div class="border rounded p-2 bg-light">旅游不属于暂停服务的合理理由，建议驳回。</div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">机构负责人意见</label>
+                    <div class="border rounded p-2 bg-light">旅游非合理暂停理由，按规定驳回申请。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 暂停申请材料 -->
+          <div class="card mb-4">
+            <div class="card-header">暂停申请材料</div>
+            <div class="card-body">
+              <div class="material-preview">
+                <h6 class="mb-2">暂停申请表</h6>
+                <img src="https://via.placeholder.com/400x300?text=暂停申请表" alt="暂停申请表" class="img-fluid">
+                <div class="mt-2">
+                  <button class="btn btn-sm btn-outline-primary"><i class="fa fa-eye"></i> 预览</button>
+                  <button class="btn btn-sm btn-outline-secondary"><i class="fa fa-download"></i> 下载</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 审批记录 -->
+          <div class="card">
+            <div class="card-header">审批记录</div>
+            <div class="card-body">
+              <table class="service-stats-table w-100">
+                <thead>
+                  <tr>
+                    <th>审批环节</th>
+                    <th>审批人</th>
+                    <th>审批意见</th>
+                    <th>审批结果</th>
+                    <th>审批时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>护理员发起</td>
+                    <td>张护理</td>
+                    <td>用户因旅游申请暂停服务</td>
+                    <td>-</td>
+                    <td>2024-09-08 10:20:35</td>
+                  </tr>
+                  <tr>
+                    <td>服务主管审核</td>
+                    <td>张主管</td>
+                    <td>理由不充分，建议驳回</td>
+                    <td>驳回</td>
+                    <td>2024-09-08 14:30:22</td>
+                  </tr>
+                  <tr>
+                    <td>机构负责人审批</td>
+                    <td>机构负责人</td>
+                    <td>旅游非合理暂停理由，按规定驳回</td>
+                    <td>驳回</td>
+                    <td>2024-09-09 09:15:47</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            <i class="fa fa-times"></i> 关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 驳回原因弹窗 -->
+  <div class="modal fade" id="rejectReasonModal" tabindex="-1" aria-labelledby="rejectReasonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectReasonModalLabel">驳回原因</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">驳回理由（限200字）</label>
+            <textarea class="form-control" rows="4" placeholder="请输入驳回原因..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-danger">确认驳回</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

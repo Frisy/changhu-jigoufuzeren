@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全机构看板管理 - 机构负责人平台</title>
+  <!-- 引入外部资源 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    /* 原有样式保持不变 */
+    body { font-family: "微软雅黑", "思源黑体", sans-serif; background-color: #f5f7fa; color: #333; margin: 0; padding: 0; }
+    .btn-primary { background-color: #1890FF; border-color: #1890FF; }
+    .btn-primary:hover { background-color: #096DD9; border-color: #096DD9; }
+    .btn-outline-secondary { border-color: #ddd; color: #666; }
+    .btn-outline-secondary:hover { background-color: #f5f5f5; border-color: #ccc; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #fff; border-bottom: 1px solid #f0f0f0; border-radius: 12px 12px 0 0; padding: 15px 20px; font-weight: 600; font-size: 15px; }
+    .card-body { padding: 20px; }
+    .badge { font-size: 12px; }
+
+    /* 布局样式 */
+    .app-container { display: flex; min-height: 100vh; }
+    /* 侧边导航（机构负责人版） */
+    .sidebar { width: 220px; background: #fff; box-shadow: 1px 0 2px rgba(0,0,0,0.05); padding: 20px 0; flex-shrink: 0; }
+    .sidebar-logo { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #f0f0f0; margin-bottom: 20px; }
+    .sidebar-logo img { height: 40px; margin-bottom: 8px; }
+    .sidebar-logo h3 { font-size: 16px; color: #1890FF; font-weight: 600; margin: 0; }
+    .nav-menu { list-style: none; padding: 0; margin: 0; }
+    .nav-item { margin-bottom: 4px; }
+    .nav-link { display: flex; align-items: center; padding: 12px 20px; color: #666; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: #1890FF; background-color: #f0f7ff; border-left: 3px solid #1890FF; }
+    .nav-link i { font-size: 18px; margin-right: 12px; width: 20px; text-align: center; }
+    .nav-group-title { padding: 15px 20px 5px; font-size: 12px; color: #999; font-weight: 500; }
+
+    /* 主内容区 */
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    /* 顶部导航 */
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #333; margin: 0; }
+    .user-info { display: flex; align-items: center; }
+    .notification { position: relative; margin-right: 20px; cursor: pointer; }
+    .notification i { font-size: 20px; color: #666; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #FF4D4F; color: #fff; border-radius: 50%; font-size: 12px; text-align: center; line-height: 18px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1890FF; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; margin-right: 10px; }
+    .user-name { font-size: 14px; font-weight: 500; }
+
+    /* 通用看板样式 */
+    .kanban-header { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; }
+    .kanban-filter-group { flex: 1; min-width: 150px; }
+    .kanban-filter-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
+    .kanban-filter-group select, .kanban-filter-group input { width: 100%; }
+    .kanban-action-group { display: flex; gap: 10px; align-self: flex-end; }
+
+    /* 服务对象看板专属样式 */
+    .object-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .region-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .region-item { margin-bottom: 15px; }
+    .region-title { font-weight: 600; font-size: 14px; color: #1890FF; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #f0f0f0; }
+    .object-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .object-item:hover { background-color: #f5fafe; }
+    .object-item.normal { color: #52C41A; }
+    .object-item.paused { color: #FAAD14; }
+    .object-item.deceased { color: #FF4D4F; }
+    .object-item.transferred { color: #999; }
+    .object-info { font-size: 13px; }
+    .object-status-tag { margin-left: 5px; font-size: 11px; }
+
+    .calendar-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .calendar-header { display: flex; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 10px; }
+    .calendar-date { flex: 1; text-align: center; font-weight: 500; font-size: 13px; }
+    .calendar-row { display: flex; border-bottom: 1px solid #f0f0f0; }
+    .calendar-cell { flex: 1; height: 40px; border-right: 1px solid #f0f0f0; position: relative; }
+    .calendar-cell:last-child { border-right: none; }
+    .task-block { position: absolute; left: 2px; right: 2px; top: 2px; bottom: 2px; border-radius: 4px; cursor: pointer; overflow: hidden; font-size: 11px; padding: 2px; white-space: nowrap; text-overflow: ellipsis; }
+    .task-block.unstarted { background-color: #e9ecef; color: #666; }
+    .task-block.expired { background-color: #fff1f0; color: #FF4D4F; }
+    .task-block.completed { background-color: #e6f7ef; color: #52C41A; }
+
+    .summary-section { margin-top: 20px; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .summary-title { font-weight: 600; margin-bottom: 10px; font-size: 14px; }
+    .summary-table { width: 100%; border-collapse: collapse; }
+    .summary-table th, .summary-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: left; font-size: 13px; }
+    .summary-table th { background-color: #f8f9fa; font-weight: 500; }
+    .summary-value.over { color: #FF4D4F; font-weight: 600; }
+    .summary-value.equal { color: #FAAD14; font-weight: 600; }
+    .summary-value.normal { color: #333; font-weight: 600; }
+
+    /* 护理员看板专属样式 */
+    .caregiver-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .leader-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .leader-item { margin-bottom: 15px; }
+    .leader-title { font-weight: 600; font-size: 14px; color: #1890FF; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #f0f0f0; }
+    .caregiver-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .caregiver-item:hover { background-color: #f5fafe; }
+    .caregiver-info { font-size: 13px; display: flex; justify-content: space-between; }
+    .expand-btn { font-size: 11px; color: #1890FF; cursor: pointer; }
+
+    .caregiver-data-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: center; font-size: 13px; }
+    .data-table th { background-color: #f8f9fa; font-weight: 500; }
+    .load-ranking-section { margin-top: 20px; }
+    .ranking-list { list-style: none; padding: 0; margin: 0; }
+    .ranking-item { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+    .ranking-num { width: 20px; text-align: center; font-weight: 600; color: #1890FF; }
+    .ranking-name { flex: 1; margin-left: 10px; }
+    .ranking-value { font-weight: 600; color: #333; }
+
+    /* 运营总体看板专属样式 */
+    .operation-kanban-container { display: flex; gap: 20px; height: calc(100vh - 200px); }
+    .area-list { flex: 1; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .area-item { padding: 8px; margin-bottom: 5px; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+    .area-item:hover { background-color: #f5fafe; }
+    .area-checkbox { margin-right: 8px; }
+    .area-name { font-size: 13px; flex: 1; }
+    .area-tag { font-size: 11px; color: #fff; background-color: #FAAD14; padding: 2px 5px; border-radius: 3px; }
+
+    .area-data-view { flex: 3; background: #fff; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+    .data-card-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+    .data-card { flex: 1; min-width: 200px; background: #fff; border: 1px solid #f0f0f0; border-radius: 8px; padding: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .data-card-header { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #333; }
+    .data-card-value { font-size: 24px; font-weight: 600; color: #1890FF; margin-bottom: 5px; }
+    .data-card-desc { font-size: 12px; color: #666; }
+    .completion-rate { font-size: 18px; color: #52C41A; }
+
+    .total-summary-card { background-color: #e6f7ff; border-color: #91d5ff; }
+    .total-summary-card .data-card-header { color: #096dd9; }
+    .total-summary-card .data-card-value { color: #096dd9; }
+
+    .area-ranking-section { margin-top: 20px; }
+
+    /* 弹窗样式 */
+    .detail-modal .modal-dialog { max-width: 600px; }
+    .detail-modal .modal-body { padding: 20px; }
+    .detail-title { font-weight: 600; margin-bottom: 15px; font-size: 14px; }
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table th, .detail-table td { border: 1px solid #f0f0f0; padding: 8px 10px; text-align: left; font-size: 13px; }
+    .detail-table th { background-color: #f8f9fa; font-weight: 500; }
+
+    /* 统计分析新增样式 */
+    .statistics-container { display: none; }
+    .statistics-container.active { display: block; }
+    
+    .stats-tabs { border-bottom: 1px solid #e8e8e8; margin-bottom: 20px; }
+    .stats-tabs .nav-link { border: none; border-bottom: 2px solid transparent; color: #666; padding: 10px 20px; }
+    .stats-tabs .nav-link.active { border-bottom: 2px solid #1890FF; color: #1890FF; font-weight: 600; }
+    
+    .chart-container { height: 300px; margin-bottom: 20px; position: relative; }
+    .chart-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
+    
+    .filter-row { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; align-items: flex-end; }
+    .filter-item { flex: 1; min-width: 150px; }
+    
+    .template-selector { margin-bottom: 15px; }
+    .template-selector select { width: 250px; }
+    
+    .data-compare-section { margin-top: 20px; }
+    .compare-table { width: 100%; border-collapse: collapse; }
+    .compare-table th, .compare-table td { border: 1px solid #f0f0f0; padding: 10px; text-align: center; }
+    .compare-table th { background-color: #f8f9fa; }
+    .growth { color: #52C41A; font-weight: 600; }
+    .decline { color: #FF4D4F; font-weight: 600; }
+    
+    .detail-list-modal .modal-dialog { max-width: 900px; }
+    .unsatisfied-item { color: #FF4D4F; font-weight: 500; }
+    .watermark { position: absolute; bottom: 20px; right: 20px; font-size: 12px; color: #ccc; transform: rotate(-15deg); }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边导航（机构负责人版） -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="https://via.placeholder.com/80x40?text=居家长护" alt="系统Logo">
+        <h3>机构负责人工作平台</h3>
+      </div>
+      
+      <!-- 导航分组：看板管理（全机构） -->
+      <div class="nav-group-title">看板管理（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#service-object-kanban" class="nav-link kanban-tab-link" data-tab="service-object">
+            <i class="fa fa-user-o"></i>
+            <span>服务对象看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#caregiver-kanban" class="nav-link kanban-tab-link" data-tab="caregiver">
+            <i class="fa fa-user-md"></i>
+            <span>护理员看板</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#operation-kanban" class="nav-link kanban-tab-link" data-tab="operation">
+            <i class="fa fa-dashboard"></i>
+            <span>运营总体看板</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：统计分析（新增） -->
+      <div class="nav-group-title">统计分析（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#statistics-analysis" class="nav-link statistics-link active">
+            <i class="fa fa-bar-chart"></i>
+            <span>综合统计</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：审批管理 -->
+      <div class="nav-group-title">审批管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-check-square-o"></i>
+            <span>首月计划审批</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-list-alt"></i>
+            <span>已审批计划查询</span>
+          </a>
+        </li>
+      </ul>
+      
+      <!-- 导航分组：系统管理 -->
+      <div class="nav-group-title">系统管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-cog"></i>
+            <span>机构服务配置</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fa fa-users"></i>
+            <span>人员权限管理</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 顶部导航：标题 + 用户信息 -->
+      <div class="top-nav">
+        <h1 class="page-title" id="mainPageTitle">综合统计分析（全机构）</h1>
+        <div class="user-info">
+          <div class="notification">
+            <i class="fa fa-bell-o"></i>
+            <span class="notification-badge">2</span>
+          </div>
+          <div class="user-avatar">负</div>
+          <div class="user-name">机构负责人</div>
+        </div>
+      </div>
+
+      <!-- 原有看板区域 -->
+      <div id="kanbanContainer">
+        <!-- 服务对象看板（默认显示） -->
+        <div id="serviceObjectKanban" class="kanban-tab-content">
+          <!-- 原有内容保持不变 -->
+        </div>
+
+        <!-- 护理员看板（默认隐藏） -->
+        <div id="caregiverKanban" class="kanban-tab-content d-none">
+          <!-- 原有内容保持不变 -->
+        </div>
+
+        <!-- 运营总体看板（默认隐藏） -->
+        <div id="operationKanban" class="kanban-tab-content d-none">
+          <!-- 原有内容保持不变 -->
+        </div>
+      </div>
+
+      <!-- 统计分析区域（新增） -->
+      <div id="statisticsContainer" class="statistics-container active">
+        <!-- 模板选择器 -->
+        <div class="template-selector">
+          <label for="queryTemplate" class="me-2">查询模板：</label>
+          <select class="form-select d-inline-block" id="queryTemplate">
+            <option value="custom">自定义查询</option>
+            <option value="monthly-workorder">每月1-31日-全机构工单统计</option>
+            <option value="quarterly-assessment">每季度-全机构评估质量统计</option>
+            <option value="monthly-visit">每月-全机构回访统计</option>
+          </select>
+          <button class="btn btn-outline-secondary btn-sm ms-2" id="saveTemplateBtn">
+            <i class="fa fa-save"></i> 保存模板
+          </button>
+          <button class="btn btn-outline-secondary btn-sm ms-1" id="deleteTemplateBtn">
+            <i class="fa fa-trash"></i> 删除模板
+          </button>
+        </div>
+
+        <!-- 统计标签页 -->
+        <ul class="nav stats-tabs" id="statsTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="objectStats-tab" data-bs-toggle="tab" data-bs-target="#objectStats" type="button" role="tab">服务对象统计</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="assessmentStats-tab" data-bs-toggle="tab" data-bs-target="#assessmentStats" type="button" role="tab">评估质量统计</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="workorderStats-tab" data-bs-toggle="tab" data-bs-target="#workorderStats" type="button" role="tab">工单统计</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="visitStats-tab" data-bs-toggle="tab" data-bs-target="#visitStats" type="button" role="tab">回访统计</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="compareStats-tab" data-bs-toggle="tab" data-bs-target="#compareStats" type="button" role="tab">数据对比分析</button>
+          </li>
+        </ul>
+
+        <!-- 统计内容区域 -->
+        <div class="tab-content" id="statsTabContent">
+          <!-- 服务对象统计 -->
+          <div class="tab-pane fade show active" id="objectStats" role="tabpanel">
+            <!-- 筛选区 -->
+            <div class="filter-row">
+              <div class="filter-item">
+                <label for="objectRegionFilter">行政区域</label>
+                <select class="form-select" id="objectRegionFilter">
+                  <option value="all">所有区域</option>
+                  <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                  <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+                  <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+                  <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="objectStartDate">公示开始日期</label>
+                <input type="date" class="form-control" id="objectStartDate" value="2024-01-01">
+              </div>
+              <div class="filter-item">
+                <label for="objectEndDate">公示结束日期</label>
+                <input type="date" class="form-control" id="objectEndDate" value="2024-09-30">
+              </div>
+              <div class="filter-item">
+                <label for="objectStatusFilter">服务状态</label>
+                <select class="form-select" id="objectStatusFilter">
+                  <option value="all">全部状态</option>
+                  <option value="normal">正常</option>
+                  <option value="paused">暂停</option>
+                  <option value="deceased">死亡</option>
+                  <option value="transferred">转出</option>
+                </select>
+              </div>
+              <div class="filter-item" style="flex: 0 0 auto;">
+                <button class="btn btn-primary" id="objectFilterBtn">
+                  <i class="fa fa-search"></i> 查询
+                </button>
+              </div>
+            </div>
+
+            <!-- 数据展示区 -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">全机构服务对象状态分布</h5>
+                  <div class="chart-container">
+                    <canvas id="objectStatusChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">各区域重度失能人数分布</h5>
+                  <div class="chart-container">
+                    <canvas id="regionDisabilityChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="card">
+              <div class="card-header">
+                全机构服务对象统计数据
+                <button class="btn btn-sm btn-outline-secondary float-end" id="viewObjectDetailBtn">
+                  <i class="fa fa-list"></i> 查看详单
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>行政区域</th>
+                        <th>重度失能总人数</th>
+                        <th>累计服务人数</th>
+                        <th>正常人数</th>
+                        <th>暂停人数</th>
+                        <th>死亡人数</th>
+                        <th>转出人数</th>
+                        <th>占比</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>绍兴市嵊州市-石璜镇</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="object" data-region="石璜镇">12</a></td>
+                        <td>15</td>
+                        <td>10</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>3</td>
+                        <td>28.6%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-长乐镇</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="object" data-region="长乐镇">8</a></td>
+                        <td>12</td>
+                        <td>6</td>
+                        <td>2</td>
+                        <td>2</td>
+                        <td>2</td>
+                        <td>22.9%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-甘霖镇</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="object" data-region="甘霖镇">10</a></td>
+                        <td>14</td>
+                        <td>9</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>4</td>
+                        <td>25.7%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-崇仁镇</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="object" data-region="崇仁镇">5</a></td>
+                        <td>8</td>
+                        <td>4</td>
+                        <td>1</td>
+                        <td>1</td>
+                        <td>2</td>
+                        <td>14.3%</td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>总计</strong></td>
+                        <td><strong>35</strong></td>
+                        <td><strong>49</strong></td>
+                        <td><strong>29</strong></td>
+                        <td><strong>5</strong></td>
+                        <td><strong>4</strong></td>
+                        <td><strong>11</strong></td>
+                        <td><strong>100%</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button class="btn btn-primary" id="exportObjectStatsBtn">
+                  <i class="fa fa-download"></i> 导出全机构报表
+                </button>
+                <button class="btn btn-outline-secondary ms-2" id="compareObjectBtn">
+                  <i class="fa fa-exchange"></i> 数据对比
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 评估质量统计 -->
+          <div class="tab-pane fade" id="assessmentStats" role="tabpanel">
+            <!-- 筛选区 -->
+            <div class="filter-row">
+              <div class="filter-item">
+                <label for="assessmentRegionFilter">行政区域</label>
+                <select class="form-select" id="assessmentRegionFilter">
+                  <option value="all">所有区域</option>
+                  <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                  <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+                  <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+                  <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="assessmentStartDate">提交开始日期</label>
+                <input type="date" class="form-control" id="assessmentStartDate" value="2024-01-01">
+              </div>
+              <div class="filter-item">
+                <label for="assessmentEndDate">提交结束日期</label>
+                <input type="date" class="form-control" id="assessmentEndDate" value="2024-09-30">
+              </div>
+              <div class="filter-item">
+                <label for="assessorFilter">评估员</label>
+                <select class="form-select" id="assessorFilter">
+                  <option value="all">所有评估员</option>
+                  <option value="评估员A">评估员A</option>
+                  <option value="评估员B">评估员B</option>
+                  <option value="评估员C">评估员C</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="genderFilter">性别</label>
+                <select class="form-select" id="genderFilter">
+                  <option value="all">全部</option>
+                  <option value="男">男</option>
+                  <option value="女">女</option>
+                </select>
+              </div>
+              <div class="filter-item" style="flex: 0 0 auto;">
+                <button class="btn btn-primary" id="assessmentFilterBtn">
+                  <i class="fa fa-search"></i> 查询
+                </button>
+              </div>
+            </div>
+
+            <!-- 数据展示区 -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">评估员通过率对比</h5>
+                  <div class="chart-container">
+                    <canvas id="assessorRateChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">失能等级分布</h5>
+                  <div class="chart-container">
+                    <canvas id="disabilityLevelChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="card">
+              <div class="card-header">
+                全机构评估质量统计数据
+                <button class="btn btn-sm btn-outline-secondary float-end" id="viewAssessmentDetailBtn">
+                  <i class="fa fa-list"></i> 查看详单
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>评估员</th>
+                        <th>评估总人数</th>
+                        <th>轻度人数</th>
+                        <th>中度人数</th>
+                        <th>重度人数</th>
+                        <th>一级人数</th>
+                        <th>二级人数</th>
+                        <th>三级人数</th>
+                        <th>通过率</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>评估员A</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="assessment" data-assessor="评估员A">45</a></td>
+                        <td>5</td>
+                        <td>10</td>
+                        <td>30</td>
+                        <td>12</td>
+                        <td>10</td>
+                        <td>8</td>
+                        <td>66.7%</td>
+                      </tr>
+                      <tr>
+                        <td>评估员B</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="assessment" data-assessor="评估员B">38</a></td>
+                        <td>3</td>
+                        <td>8</td>
+                        <td>27</td>
+                        <td>9</td>
+                        <td>9</td>
+                        <td>9</td>
+                        <td>71.1%</td>
+                      </tr>
+                      <tr>
+                        <td>评估员C</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="assessment" data-assessor="评估员C">25</a></td>
+                        <td>2</td>
+                        <td>5</td>
+                        <td>18</td>
+                        <td>6</td>
+                        <td>6</td>
+                        <td>6</td>
+                        <td>72.0%</td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>总计</strong></td>
+                        <td><strong>108</strong></td>
+                        <td><strong>10</strong></td>
+                        <td><strong>23</strong></td>
+                        <td><strong>75</strong></td>
+                        <td><strong>27</strong></td>
+                        <td><strong>25</strong></td>
+                        <td><strong>23</strong></td>
+                        <td><strong>69.4%</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button class="btn btn-primary" id="exportAssessmentStatsBtn">
+                  <i class="fa fa-download"></i> 导出全机构报表
+                </button>
+                <button class="btn btn-outline-secondary ms-2" id="compareAssessmentBtn">
+                  <i class="fa fa-exchange"></i> 数据对比
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 工单统计 -->
+          <div class="tab-pane fade" id="workorderStats" role="tabpanel">
+            <!-- 筛选区 -->
+            <div class="filter-row">
+              <div class="filter-item">
+                <label for="workorderMonthFilter">月份</label>
+                <input type="month" class="form-control" id="workorderMonthFilter" value="2024-09">
+              </div>
+              <div class="filter-item">
+                <label for="workorderRegionFilter">行政区域</label>
+                <select class="form-select" id="workorderRegionFilter">
+                  <option value="all">所有区域</option>
+                  <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                  <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+                  <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+                  <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="caregiverFilter">护理员</label>
+                <select class="form-select" id="caregiverFilter">
+                  <option value="all">所有护理员</option>
+                  <option value="李护理">李护理</option>
+                  <option value="王护理">王护理</option>
+                  <option value="张护理">张护理</option>
+                  <option value="赵护理">赵护理</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="workorderTypeFilter">工单类型</label>
+                <select class="form-select" id="workorderTypeFilter">
+                  <option value="all">所有类型</option>
+                  <option value="normal">正常工单</option>
+                  <option value="exception">异常工单</option>
+                  <option value="timeout">超时工单</option>
+                  <option value="insufficient">服务不足</option>
+                </select>
+              </div>
+              <div class="filter-item" style="flex: 0 0 auto;">
+                <button class="btn btn-primary" id="workorderFilterBtn">
+                  <i class="fa fa-search"></i> 查询
+                </button>
+              </div>
+            </div>
+
+            <!-- 数据展示区 -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">异常工单原因占比</h5>
+                  <div class="chart-container">
+                    <canvas id="exceptionReasonChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">护理员工时统计</h5>
+                  <div class="chart-container">
+                    <canvas id="caregiverHoursChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="card">
+              <div class="card-header">
+                全机构工单统计数据
+                <button class="btn btn-sm btn-outline-secondary float-end" id="viewWorkorderDetailBtn">
+                  <i class="fa fa-list"></i> 查看详单
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>行政区域</th>
+                        <th>总工单数</th>
+                        <th>超时服务数</th>
+                        <th>服务不足数</th>
+                        <th>异常工单数</th>
+                        <th>签入超限</th>
+                        <th>时长不符</th>
+                        <th>未执行</th>
+                        <th>异常率</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>绍兴市嵊州市-石璜镇</td>
+                        <td>280</td>
+                        <td>12</td>
+                        <td>8</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="workorder" data-region="石璜镇">15</a></td>
+                        <td>5</td>
+                        <td>7</td>
+                        <td>3</td>
+                        <td>5.4%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-长乐镇</td>
+                        <td>200</td>
+                        <td>15</td>
+                        <td>12</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="workorder" data-region="长乐镇">22</a></td>
+                        <td>8</td>
+                        <td>10</td>
+                        <td>4</td>
+                        <td>11.0%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-甘霖镇</td>
+                        <td>240</td>
+                        <td>8</td>
+                        <td>5</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="workorder" data-region="甘霖镇">10</a></td>
+                        <td>3</td>
+                        <td>5</td>
+                        <td>2</td>
+                        <td>4.2%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-崇仁镇</td>
+                        <td>120</td>
+                        <td>10</td>
+                        <td>8</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="workorder" data-region="崇仁镇">18</a></td>
+                        <td>6</td>
+                        <td>8</td>
+                        <td>4</td>
+                        <td>15.0%</td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>总计</strong></td>
+                        <td><strong>840</strong></td>
+                        <td><strong>45</strong></td>
+                        <td><strong>33</strong></td>
+                        <td><strong>65</strong></td>
+                        <td><strong>22</strong></td>
+                        <td><strong>30</strong></td>
+                        <td><strong>13</strong></td>
+                        <td><strong>7.7%</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button class="btn btn-primary" id="exportWorkorderStatsBtn">
+                  <i class="fa fa-download"></i> 导出异常分析报告
+                </button>
+                <button class="btn btn-outline-secondary ms-2" id="compareWorkorderBtn">
+                  <i class="fa fa-exchange"></i> 数据对比
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 回访统计 -->
+          <div class="tab-pane fade" id="visitStats" role="tabpanel">
+            <!-- 筛选区 -->
+            <div class="filter-row">
+              <div class="filter-item">
+                <label for="visitStartDate">回访开始日期</label>
+                <input type="date" class="form-control" id="visitStartDate" value="2024-09-01">
+              </div>
+              <div class="filter-item">
+                <label for="visitEndDate">回访结束日期</label>
+                <input type="date" class="form-control" id="visitEndDate" value="2024-09-30">
+              </div>
+              <div class="filter-item">
+                <label for="visitRegionFilter">行政区域</label>
+                <select class="form-select" id="visitRegionFilter">
+                  <option value="all">所有区域</option>
+                  <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                  <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+                  <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+                  <option value="绍兴市嵊州市-崇仁镇">绍兴市嵊州市-崇仁镇</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="visitCaregiverFilter">护理员</label>
+                <select class="form-select" id="visitCaregiverFilter">
+                  <option value="all">所有护理员</option>
+                  <option value="李护理">李护理</option>
+                  <option value="王护理">王护理</option>
+                  <option value="张护理">张护理</option>
+                  <option value="赵护理">赵护理</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <label for="satisfactionFilter">满意度</label>
+                <select class="form-select" id="satisfactionFilter">
+                  <option value="all">全部</option>
+                  <option value="verySatisfied">非常满意</option>
+                  <option value="satisfied">满意</option>
+                  <option value="general">一般</option>
+                  <option value="unsatisfied">不满意</option>
+                </select>
+              </div>
+              <div class="filter-item" style="flex: 0 0 auto;">
+                <button class="btn btn-primary" id="visitFilterBtn">
+                  <i class="fa fa-search"></i> 查询
+                </button>
+              </div>
+            </div>
+
+            <!-- 数据展示区 -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">区域满意率对比</h5>
+                  <div class="chart-container">
+                    <canvas id="regionSatisfactionChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="chart-card">
+                  <h5 class="card-title mb-3">不满意原因TOP3</h5>
+                  <div class="chart-container">
+                    <canvas id="unsatisfiedReasonChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="card">
+              <div class="card-header">
+                全机构回访统计数据
+                <button class="btn btn-sm btn-outline-secondary float-end" id="viewVisitDetailBtn">
+                  <i class="fa fa-list"></i> 查看详单
+                </button>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th>行政区域</th>
+                        <th>实际服务人数</th>
+                        <th>总回访人数</th>
+                        <th>非常满意</th>
+                        <th>满意</th>
+                        <th>一般</th>
+                        <th>不满意</th>
+                        <th>回访率</th>
+                        <th>满意率</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>绍兴市嵊州市-石璜镇</td>
+                        <td>29</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="visit" data-region="石璜镇">25</a></td>
+                        <td>15</td>
+                        <td>8</td>
+                        <td>1</td>
+                        <td class="unsatisfied-item">1</td>
+                        <td>86.2%</td>
+                        <td>96.0%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-长乐镇</td>
+                        <td>20</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="visit" data-region="长乐镇">18</a></td>
+                        <td>8</td>
+                        <td>6</td>
+                        <td>2</td>
+                        <td class="unsatisfied-item">2</td>
+                        <td>90.0%</td>
+                        <td>88.9%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-甘霖镇</td>
+                        <td>24</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="visit" data-region="甘霖镇">22</a></td>
+                        <td>14</td>
+                        <td>7</td>
+                        <td>1</td>
+                        <td>0</td>
+                        <td>91.7%</td>
+                        <td>100%</td>
+                      </tr>
+                      <tr>
+                        <td>绍兴市嵊州市-崇仁镇</td>
+                        <td>12</td>
+                        <td><a href="javascript:void(0)" class="detail-link" data-type="visit" data-region="崇仁镇">10</a></td>
+                        <td>4</td>
+                        <td>3</td>
+                        <td>2</td>
+                        <td class="unsatisfied-item">1</td>
+                        <td>83.3%</td>
+                        <td>90.0%</td>
+                      </tr>
+                      <tr class="table-primary">
+                        <td><strong>总计</strong></td>
+                        <td><strong>85</strong></td>
+                        <td><strong>75</strong></td>
+                        <td><strong>41</strong></td>
+                        <td><strong>24</strong></td>
+                        <td><strong>6</strong></td>
+                        <td class="unsatisfied-item"><strong>4</strong></td>
+                        <td><strong>88.2%</strong></td>
+                        <td><strong>94.7%</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button class="btn btn-primary" id="exportVisitStatsBtn">
+                  <i class="fa fa-download"></i> 导出全机构报表
+                </button>
+                <button class="btn btn-outline-secondary ms-2" id="compareVisitBtn">
+                  <i class="fa fa-exchange"></i> 数据对比
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据对比分析 -->
+          <div class="tab-pane fade" id="compareStats" role="tabpanel">
+            <!-- 对比条件选择 -->
+            <div class="card mb-3">
+              <div class="card-header">
+                数据对比条件设置
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label for="compareType">对比类型</label>
+                      <select class="form-select" id="compareType">
+                        <option value="object">服务对象统计</option>
+                        <option value="assessment">评估质量统计</option>
+                        <option value="workorder">工单统计</option>
+                        <option value="visit">回访统计</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label for="compareCycle">对比周期</label>
+                      <select class="form-select" id="compareCycle">
+                        <option value="month">本月 vs 上月</option>
+                        <option value="quarter">本季度 vs 上季度</option>
+                        <option value="year">本年 vs 上年</option>
+                        <option value="custom">自定义周期</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label>&nbsp;</label>
+                      <button class="btn btn-primary w-100" id="compareBtn">
+                        <i class="fa fa-bar-chart"></i> 生成对比分析
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 对比结果展示 -->
+            <div class="data-compare-section">
+              <div class="card">
+                <div class="card-header">
+                  回访统计数据对比（2024年9月 vs 2024年8月）
+                </div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="compare-table">
+                      <thead>
+                        <tr>
+                          <th>指标名称</th>
+                          <th>本月数据</th>
+                          <th>上月数据</th>
+                          <th>差异值</th>
+                          <th>变化率</th>
+                          <th>趋势</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>总回访人数</td>
+                          <td>75</td>
+                          <td>68</td>
+                          <td>+7</td>
+                          <td class="growth">+10.3%</td>
+                          <td><i class="fa fa-arrow-up text-success"></i></td>
+                        </tr>
+                        <tr>
+                          <td>回访率</td>
+                          <td>88.2%</td>
+                          <td>85.0%</td>
+                          <td>+3.2%</td>
+                          <td class="growth">+3.8%</td>
+                          <td><i class="fa fa-arrow-up text-success"></i></td>
+                        </tr>
+                        <tr>
+                          <td>满意率</td>
+                          <td>94.7%</td>
+                          <td>96.2%</td>
+                          <td>-1.5%</td>
+                          <td class="decline">-1.6%</td>
+                          <td><i class="fa fa-arrow-down text-danger"></i></td>
+                        </tr>
+                        <tr>
+                          <td>不满意人数</td>
+                          <td>4</td>
+                          <td>2</td>
+                          <td>+2</td>
+                          <td class="decline">+100%</td>
+                          <td><i class="fa fa-arrow-up text-danger"></i></td>
+                        </tr>
+                        <tr>
+                          <td>非常满意率</td>
+                          <td>54.7%</td>
+                          <td>58.8%</td>
+                          <td>-4.1%</td>
+                          <td class="decline">-7.0%</td>
+                          <td><i class="fa fa-arrow-down text-danger"></i></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-primary" id="exportCompareBtn">
+                    <i class="fa fa-download"></i> 导出对比报告
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据详情弹窗 -->
+      <div class="modal fade detail-modal" id="dataDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="detailModalTitle">计划服务人数详情（9月1日）</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <!-- 原有内容保持不变 -->
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 统计详情列表弹窗（新增） -->
+      <div class="modal fade detail-list-modal" id="detailListModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="detailListTitle">服务对象详单 - 石璜镇重度失能人员</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="table-responsive">
+                <table class="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>姓名</th>
+                      <th>身份证号</th>
+                      <th>性别</th>
+                      <th>失能等级</th>
+                      <th>地址</th>
+                      <th>服务状态</th>
+                      <th>公示日期</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>陈一</td>
+                      <td>330623********1234</td>
+                      <td>男</td>
+                      <td>一级</td>
+                      <td>石璜镇XX村123号</td>
+                      <td><span class="badge bg-success">正常</span></td>
+                      <td>2024-09-01</td>
+                    </tr>
+                    <tr>
+                      <td>吴二</td>
+                      <td>330623********5678</td>
+                      <td>女</td>
+                      <td>二级</td>
+                      <td>石璜镇XX村456号</td>
+                      <td><span class="badge bg-success">正常</span></td>
+                      <td>2024-09-01</td>
+                    </tr>
+                    <tr>
+                      <td>郑三</td>
+                      <td>330623********9012</td>
+                      <td>男</td>
+                      <td>三级</td>
+                      <td>石璜镇XX村789号</td>
+                      <td><span class="badge bg-warning">暂停</span></td>
+                      <td>2024-09-01</td>
+                    </tr>
+                    <!-- 更多数据 -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="watermark">
+                机构名称：嵊州市居家长护机构 | 统计周期：2024-01-01至2024-09-30 | 导出人：机构负责人 | 导出时间：2024-09-25 14:30:25
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" id="exportDetailBtn">
+                <i class="fa fa-download"></i> 导出详单
+              </button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 保存模板弹窗（新增） -->
+      <div class="modal fade" id="saveTemplateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">保存查询模板</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="templateName" class="form-label">模板名称</label>
+                <input type="text" class="form-control" id="templateName" placeholder="输入模板名称">
+              </div>
+              <div class="mb-3">
+                <label for="templateDesc" class="form-label">模板描述（选填）</label>
+                <textarea class="form-control" id="templateDesc" rows="2" placeholder="输入模板描述"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="button" class="btn btn-primary" id="confirmSaveTemplateBtn">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    $(function() {
+      // 初始化模态框
+      const dataDetailModal = new bootstrap.Modal('#dataDetailModal');
+      const detailListModal = new bootstrap.Modal('#detailListModal');
+      const saveTemplateModal = new bootstrap.Modal('#saveTemplateModal');
+      
+      // 看板与统计分析切换
+      $('.kanban-tab-link').click(function(e) {
+        e.preventDefault();
+        
+        // 隐藏统计分析，显示看板
+        $('#statisticsContainer').removeClass('active');
+        $('#kanbanContainer').show();
+        $('.statistics-link').removeClass('active');
+        $(this).addClass('active');
+        
+        // 更新页面标题
+        const tabType = $(this).data('tab');
+        if (tabType === 'service-object') {
+          $('#mainPageTitle').text('服务对象看板（全机构）');
+        } else if (tabType === 'caregiver') {
+          $('#mainPageTitle').text('护理员看板（全机构）');
+        } else if (tabType === 'operation') {
+          $('#mainPageTitle').text('运营总体看板（全机构）');
+        }
+      });
+      
+      $('.statistics-link').click(function(e) {
+        e.preventDefault();
+        
+        // 隐藏看板，显示统计分析
+        $('#kanbanContainer').hide();
+        $('#statisticsContainer').addClass('active');
+        $('.kanban-tab-link').removeClass('active');
+        $(this).addClass('active');
+        
+        // 更新页面标题
+        $('#mainPageTitle').text('综合统计分析（全机构）');
+      });
+      
+      // 原有看板标签切换逻辑保持不变
+      $('.kanban-tab-link').click(function(e) {
+        e.preventDefault();
+        
+        // 移除所有激活状态
+        $('.kanban-tab-link').removeClass('active');
+        $('.kanban-tab-content').addClass('d-none');
+        
+        // 添加当前激活状态
+        $(this).addClass('active');
+        const tabType = $(this).data('tab');
+        
+        // 显示对应看板
+        if (tabType === 'service-object') {
+          $('#serviceObjectKanban').removeClass('d-none');
+          $('#mainPageTitle').text('服务对象看板（全机构）');
+        } else if (tabType === 'caregiver') {
+          $('#caregiverKanban').removeClass('d-none');
+          $('#mainPageTitle').text('护理员看板（全

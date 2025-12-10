@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>机构负责人平台 - 回访管理（全机构）</title>
+  <!-- 引入外部资源 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+  
+  <style>
+    /* 基础样式（复用） */
+    body { font-family: "微软雅黑", "思源黑体", sans-serif; background-color: #f5f7fa; color: #333; margin: 0; padding: 0; }
+    .btn-primary { background-color: #1890FF; border-color: #1890FF; }
+    .btn-primary:hover { background-color: #096DD9; border-color: #096DD9; }
+    .btn-outline-secondary { border-color: #ddd; color: #666; }
+    .btn-outline-secondary:hover { background-color: #f5f5f5; border-color: #ccc; }
+    .card { border: none; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #fff; border-bottom: 1px solid #f0f0f0; border-radius: 12px 12px 0 0; padding: 15px 20px; font-weight: 600; font-size: 15px; }
+    .card-body { padding: 20px; }
+    .badge { font-size: 12px; }
+
+    /* 布局样式（复用） */
+    .app-container { display: flex; min-height: 100vh; }
+    .sidebar { width: 220px; background: #fff; box-shadow: 1px 0 2px rgba(0,0,0,0.05); padding: 20px 0; flex-shrink: 0; }
+    .sidebar-logo { text-align: center; padding: 0 20px 20px; border-bottom: 1px solid #f0f0f0; margin-bottom: 20px; }
+    .sidebar-logo img { height: 40px; margin-bottom: 8px; }
+    .sidebar-logo h3 { font-size: 16px; color: #1890FF; font-weight: 600; margin: 0; }
+    .nav-menu { list-style: none; padding: 0; margin: 0; }
+    .nav-item { margin-bottom: 4px; }
+    .nav-link { display: flex; align-items: center; padding: 12px 20px; color: #666; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: #1890FF; background-color: #f0f7ff; border-left: 3px solid #1890FF; }
+    .nav-link i { font-size: 18px; margin-right: 12px; width: 20px; text-align: center; }
+    .nav-group-title { padding: 15px 20px 5px; font-size: 12px; color: #999; font-weight: 500; }
+
+    /* 主内容区（复用+新增） */
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    .top-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .page-title { font-size: 20px; font-weight: 600; color: #333; margin: 0; }
+    .user-info { display: flex; align-items: center; }
+    .notification { position: relative; margin-right: 20px; cursor: pointer; }
+    .notification i { font-size: 20px; color: #666; }
+    .notification-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; background: #FF4D4F; color: #fff; border-radius: 50%; font-size: 12px; text-align: center; line-height: 18px; }
+    .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1890FF; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; margin-right: 10px; }
+    .user-name { font-size: 14px; font-weight: 500; }
+
+    /* 标签页样式（新增） */
+    .tabs-nav { border-bottom: 1px solid #dee2e6; margin-bottom: 20px; }
+    .tabs-nav .nav-link { border: none; border-bottom: 2px solid transparent; color: #666; padding: 10px 20px; font-weight: 500; }
+    .tabs-nav .nav-link.active { color: #1890FF; border-bottom-color: #1890FF; background: transparent; }
+
+    /* 筛选区域样式（新增） */
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 8px; }
+    .filter-group { flex: 1; min-width: 150px; }
+    .filter-group label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; }
+    .filter-group select, .filter-group input { width: 100%; }
+    .filter-actions { display: flex; gap: 10px; align-self: flex-end; }
+
+    /* 表格样式（复用+新增） */
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th, .data-table td { border: 1px solid #f0f0f0; padding: 10px; text-align: left; font-size: 14px; }
+    .data-table th { background-color: #f8f9fa; font-weight: 600; }
+    .data-table tr:hover { background-color: #f8f9fa; }
+    .data-table .text-orange { color: #FAAD14; }
+
+    /* 回访表单样式（新增） */
+    .visit-form-card { border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px; background: #fff; }
+    .form-item { margin-bottom: 15px; }
+    .form-item label { display: block; margin-bottom: 5px; font-weight: 500; }
+    .form-item .form-control[readonly] { background-color: #f5f5f5; }
+    .satisfaction-radio { display: flex; gap: 20px; margin: 10px 0; }
+    .satisfaction-radio label { margin-bottom: 0; cursor: pointer; }
+
+    /* 进度分析样式（新增） */
+    .progress-card { display: flex; gap: 20px; margin-bottom: 20px; }
+    .progress-card .card { flex: 1; }
+    .chart-container { height: 300px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; }
+    .reason-list { list-style: none; padding: 0; }
+    .reason-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
+    .reason-list li:last-child { border-bottom: none; }
+    .reason-label { font-weight: 500; }
+    .reason-count { color: #1890FF; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- 侧边导航 -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="https://via.placeholder.com/80x40?text=居家长护" alt="系统Logo">
+        <h3>机构负责人工作平台</h3>
+      </div>
+      
+      <!-- 其他导航分组（省略，保持与之前一致） -->
+      <div class="nav-group-title">看板管理（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="#" class="nav-link"><i class="fa fa-user-o"></i><span>服务对象看板</span></a></li>
+        <li class="nav-item"><a href="#" class="nav-link"><i class="fa fa-user-md"></i><span>护理员看板</span></a></li>
+        <li class="nav-item"><a href="#" class="nav-link"><i class="fa fa-dashboard"></i><span>运营总体看板</span></a></li>
+      </ul>
+
+      <!-- 服务管理（全机构）- 新增 -->
+      <div class="nav-group-title">服务管理（全机构）</div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="#" class="nav-link active">
+            <i class="fa fa-phone-square"></i>
+            <span>回访管理（全机构）</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- 其他导航分组（省略） -->
+      <div class="nav-group-title">审批管理</div>
+      <ul class="nav-menu">
+        <li class="nav-item"><a href="#" class="nav-link"><i class="fa fa-check-square-o"></i><span>首月计划审批</span></a></li>
+        <li class="nav-item"><a href="#" class="nav-link"><i class="fa fa-pause-circle-o"></i><span>服务对象暂停审批</span></a></li>
+      </ul>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+      <!-- 顶部导航 -->
+      <div class="top-nav">
+        <h1 class="page-title">回访管理（全机构）</h1>
+        <div class="user-info">
+          <div class="notification">
+            <i class="fa fa-bell-o"></i>
+            <span class="notification-badge">2</span>
+          </div>
+          <div class="user-avatar">负</div>
+          <div class="user-name">机构负责人</div>
+        </div>
+      </div>
+
+      <!-- 标签页导航 -->
+      <div class="tabs-nav">
+        <ul class="nav nav-tabs" id="visitTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="online-visit-tab" data-bs-toggle="tab" data-bs-target="#online-visit" type="button" role="tab">线上回访执行</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="offline-assign-tab" data-bs-toggle="tab" data-bs-target="#offline-assign" type="button" role="tab">线下回访分配</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="progress-analysis-tab" data-bs-toggle="tab" data-bs-target="#progress-analysis" type="button" role="tab">回访进度与质量</button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 标签页内容 -->
+      <div class="tab-content" id="visitTabsContent">
+        <!-- 1. 线上回访执行 -->
+        <div class="tab-pane fade show active" id="online-visit" role="tabpanel">
+          <!-- 筛选区 -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>行政区域</label>
+              <select class="form-select">
+                <option value="all">所有区域</option>
+                <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+                <option value="绍兴市嵊州市-甘霖镇">绍兴市嵊州市-甘霖镇</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>负责护理员</label>
+              <select class="form-select">
+                <option value="all">所有护理员</option>
+                <option value="李护理">李护理</option>
+                <option value="王护理">王护理</option>
+                <option value="张护理">张护理</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>未回访时长</label>
+              <select class="form-select">
+                <option value="all">全部</option>
+                <option value="≥30天">≥30天</option>
+                <option value="≥60天">≥60天</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-outline-secondary"><i class="fa fa-refresh"></i> 重置</button>
+              <button class="btn btn-primary"><i class="fa fa-filter"></i> 筛选</button>
+            </div>
+          </div>
+
+          <!-- 待回访列表与表单区域 -->
+          <div class="row">
+            <!-- 左侧：待回访列表 -->
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header">全机构待线上回访列表</div>
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>序号</th>
+                          <th>姓名</th>
+                          <th>地址</th>
+                          <th>负责护理员</th>
+                          <th>上次服务日期</th>
+                          <th>所属行政区域</th>
+                          <th>未回访时长</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>1</td>
+                          <td>郑三</td>
+                          <td>长乐镇XX村XX号</td>
+                          <td>李护理</td>
+                          <td>2024-08-10</td>
+                          <td>绍兴市嵊州市-长乐镇</td>
+                          <td class="text-orange">≥60天</td>
+                          <td>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#visitRecordModal">
+                              <i class="fa fa-pencil"></i> 执行回访
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>2</td>
+                          <td>王五</td>
+                          <td>甘霖镇XX路XX号</td>
+                          <td>王护理</td>
+                          <td>2024-09-05</td>
+                          <td>绍兴市嵊州市-甘霖镇</td>
+                          <td>≥30天</td>
+                          <td>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#visitRecordModal">
+                              <i class="fa fa-pencil"></i> 执行回访
+                            </button>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>3</td>
+                          <td>赵六</td>
+                          <td>石璜镇XX街XX号</td>
+                          <td>张护理</td>
+                          <td>2024-09-10</td>
+                          <td>绍兴市嵊州市-石璜镇</td>
+                          <td>≥30天</td>
+                          <td>
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#visitRecordModal">
+                              <i class="fa fa-pencil"></i> 执行回访
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 右侧：回访表单（默认展示第一条数据） -->
+            <div class="col-md-4">
+              <div class="visit-form-card">
+                <h5 class="mb-4">回访记录填写</h5>
+                <div class="form-item">
+                  <label>回访日期</label>
+                  <input type="text" class="form-control" value="2024-10-27" readonly>
+                </div>
+                <div class="form-item">
+                  <label>服务对象姓名</label>
+                  <input type="text" class="form-control" value="郑三" readonly>
+                </div>
+                <div class="form-item">
+                  <label>护理员姓名</label>
+                  <input type="text" class="form-control" value="李护理" readonly>
+                </div>
+                <div class="form-item">
+                  <label>所属区域</label>
+                  <input type="text" class="form-control" value="绍兴市嵊州市-长乐镇" readonly>
+                </div>
+                <div class="form-item">
+                  <label>满意度 <span class="text-danger">*</span></label>
+                  <div class="satisfaction-radio">
+                    <label><input type="radio" name="satisfaction" value="非常满意"> 非常满意</label>
+                    <label><input type="radio" name="satisfaction" value="满意" checked> 满意</label>
+                    <label><input type="radio" name="satisfaction" value="一般"> 一般</label>
+                    <label><input type="radio" name="satisfaction" value="不满意"> 不满意</label>
+                  </div>
+                </div>
+                <div class="form-item">
+                  <label>文字补充说明（选填）</label>
+                  <textarea class="form-control" rows="3" placeholder="限500字，如反馈护理员专业度不足..."></textarea>
+                </div>
+                <button class="btn btn-primary w-100">提交回访记录</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 线下回访分配 -->
+        <div class="tab-pane fade" id="offline-assign" role="tabpanel">
+          <!-- 筛选区 -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>筛选条件</label>
+              <select class="form-select">
+                <option value="≥30天">未回访时长≥30天</option>
+                <option value="不满意">上次回访不满意</option>
+                <option value="新签约">新签约满15天</option>
+                <option value="all">全部待线下回访</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>行政区域</label>
+              <select class="form-select">
+                <option value="all">所有区域</option>
+                <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-outline-secondary"><i class="fa fa-refresh"></i> 重置</button>
+              <button class="btn btn-primary"><i class="fa fa-filter"></i> 生成待分配列表</button>
+            </div>
+          </div>
+
+          <!-- 待分配列表 -->
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between">
+              <span>全机构待线下回访列表</span>
+              <div>
+                <button class="btn btn-sm btn-outline-secondary">
+                  <i class="fa fa-check-square-o"></i> 批量勾选石璜镇
+                </button>
+                <button class="btn btn-sm btn-outline-secondary ms-2">
+                  <i class="fa fa-square-o"></i> 取消全选
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th><input type="checkbox" id="selectAll"></th>
+                      <th>序号</th>
+                      <th>姓名</th>
+                      <th>地址</th>
+                      <th>负责护理员</th>
+                      <th>所属区域</th>
+                      <th>待回访原因</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="checkbox" name="assignItem"></td>
+                      <td>1</td>
+                      <td>郑三</td>
+                      <td>长乐镇XX村XX号</td>
+                      <td>李护理</td>
+                      <td>绍兴市嵊州市-长乐镇</td>
+                      <td>未回访时长≥60天</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="assignItem"></td>
+                      <td>2</td>
+                      <td>钱七</td>
+                      <td>石璜镇XX村XX号</td>
+                      <td>张护理</td>
+                      <td>绍兴市嵊州市-石璜镇</td>
+                      <td>上次回访不满意</td>
+                    </tr>
+                    <tr>
+                      <td><input type="checkbox" name="assignItem"></td>
+                      <td>3</td>
+                      <td>孙八</td>
+                      <td>甘霖镇XX路XX号</td>
+                      <td>王护理</td>
+                      <td>绍兴市嵊州市-甘霖镇</td>
+                      <td>新签约满15天</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 分配表单 -->
+          <div class="card">
+            <div class="card-header">线下回访任务分配</div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-item">
+                    <label>接收人 <span class="text-danger">*</span></label>
+                    <select class="form-select">
+                      <option value="">请选择接收人</option>
+                      <option value="评估员-周评估">评估员-周评估</option>
+                      <option value="护理员-李护理">护理员-李护理</option>
+                      <option value="护理员-王护理">护理员-王护理</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-item">
+                    <label>完成时限 <span class="text-danger">*</span></label>
+                    <select class="form-select">
+                      <option value="7天">7天内完成</option>
+                      <option value="15天">15天内完成</option>
+                      <option value="30天">30天内完成</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-12">
+                  <div class="form-item">
+                    <label>分配备注（选填）</label>
+                    <textarea class="form-control" rows="3" placeholder="如：重点核实服务时长不足问题、新签约对象需确认服务需求..."></textarea>
+                  </div>
+                </div>
+                <div class="col-md-12">
+                  <button class="btn btn-primary">提交分配任务</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 回访进度与质量分析 -->
+        <div class="tab-pane fade" id="progress-analysis" role="tabpanel">
+          <!-- 筛选区 -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>时间范围</label>
+              <select class="form-select">
+                <option value="month">近一个月</option>
+                <option value="quarter">近三个月</option>
+                <option value="year">近一年</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>行政区域</label>
+              <select class="form-select">
+                <option value="all">所有区域</option>
+                <option value="绍兴市嵊州市-石璜镇">绍兴市嵊州市-石璜镇</option>
+                <option value="绍兴市嵊州市-长乐镇">绍兴市嵊州市-长乐镇</option>
+              </select>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary"><i class="fa fa-refresh"></i> 更新数据</button>
+              <button class="btn btn-outline-secondary"><i class="fa fa-download"></i> 导出报表</button>
+            </div>
+          </div>
+
+          <!-- 进度与质量卡片 -->
+          <div class="progress-card">
+            <!-- 左侧：回访进度 -->
+            <div class="card">
+              <div class="card-header">线下回访进度监控</div>
+              <div class="card-body">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>行政区域</th>
+                      <th>接收人</th>
+                      <th>总分配数</th>
+                      <th>已完成数</th>
+                      <th>完成率</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>绍兴市嵊州市-石璜镇</td>
+                      <td>周评估</td>
+                      <td>15</td>
+                      <td>8</td>
+                      <td>53.3%</td>
+                      <td>
+                        <button class="btn btn-sm btn-warning">
+                          <i class="fa fa-bell"></i> 催办
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>绍兴市嵊州市-长乐镇</td>
+                      <td>李护理</td>
+                      <td>20</td>
+                      <td>18</td>
+                      <td>90%</td>
+                      <td>-</td>
+                    </tr>
+                    <tr>
+                      <td>绍兴市嵊州市-甘霖镇</td>
+                      <td>王护理</td>
+                      <td>12</td>
+                      <td>5</td>
+                      <td class="text-orange">41.7%</td>
+                      <td>
+                        <button class="btn btn-sm btn-warning">
+                          <i class="fa fa-bell"></i> 催办
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <button class="btn btn-outline-secondary mt-3">
+                  <i class="fa fa-bell-o"></i> 批量催办未完成任务
+                </button>
+              </div>
+            </div>
+
+            <!-- 右侧：服务质量分析 -->
+            <div class="card">
+              <div class="card-header">服务质量分析</div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <h6>全机构满意率趋势（近三个月）</h6>
+                  <div class="chart-container">
+                    <img src="https://via.placeholder.com/400x250?text=满意率折线图：8月92%、9月90%、10月93%" alt="满意率折线图" class="img-fluid">
+                  </div>
+                </div>
+                <div>
+                  <h6>不满意原因 TOP5</h6>
+                  <ul class="reason-list">
+                    <li>
+                      <span class="reason-label">服务时长不足</span>
+                      <span class="reason-count">12条 <i class="fa fa-angle-right"></i></span>
+                    </li>
+                    <li>
+                      <span class="reason-label">护理员态度问题</span>
+                      <span class="reason-count">8条 <i class="fa fa-angle-right"></i></span>
+                    </li>
+                    <li>
+                      <span class="reason-label">专业技能不足</span>
+                      <span class="reason-count">6条 <i class="fa fa-angle-right"></i></span>
+                    </li>
+                    <li>
+                      <span class="reason-label">服务流程不规范</span>
+                      <span class="reason-count">4条 <i class="fa fa-angle-right"></i></span>
+                    </li>
+                    <li>
+                      <span class="reason-label">其他原因</span>
+                      <span class="reason-count">2条 <i class="fa fa-angle-right"></i></span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 质量汇总报表 -->
+          <div class="card">
+            <div class="card-header">全机构回访质量汇总表</div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>行政区域</th>
+                      <th>总回访数</th>
+                      <th>非常满意</th>
+                      <th>满意</th>
+                      <th>一般</th>
+                      <th>不满意</th>
+                      <th>满意率</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>绍兴市嵊州市-石璜镇</td>
+                      <td>120</td>
+                      <td>85</td>
+                      <td>25</td>
+                      <td>5</td>
+                      <td>5</td>
+                      <td>91.7%</td>
+                    </tr>
+                    <tr>
+                      <td>绍兴市嵊州市-长乐镇</td>
+                      <td>150</td>
+                      <td>110</td>
+                      <td>30</td>
+                      <td>8</td>
+                      <td>2</td>
+                      <td>93.3%</td>
+                    </tr>
+                    <tr>
+                      <td>绍兴市嵊州市-甘霖镇</td>
+                      <td>130</td>
+                      <td>95</td>
+                      <td>25</td>
+                      <td>7</td>
+                      <td>3</td>
+                      <td>92.3%</td>
+                    </tr>
+                    <tr>
+                      <td><strong>全机构总计</strong></td>
+                      <td><strong>400</strong></td>
+                      <td><strong>290</strong></td>
+                      <td><strong>80</strong></td>
+                      <td><strong>20</strong></td>
+                      <td><strong>10</strong></td>
+                      <td><strong>92.5%</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-3">
+                <button class="btn btn-outline-secondary">
+                  <i class="fa fa-download"></i> 导出质量分析报告
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 回访记录弹窗 -->
+  <div class="modal fade" id="visitRecordModal" tabindex="-1" aria-labelledby="visitRecordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="visitRecordModalLabel">执行线上回访 - 郑三</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="visit-form-card">
+            <div class="form-item">
+              <label>回访日期</label>
+              <input type="text" class="form-control" value="2024-10-27" readonly>
+            </div>
+            <div class="form-item">
+              <label>服务对象姓名</label>
+              <input type="text" class="form-control" value="郑三" readonly>
+            </div>
+            <div class="form-item">
+              <label>护理员姓名</label>
+              <input type="text" class="form-control" value="李护理" readonly>
+            </div>
+            <div class="form-item">
+              <label>所属区域</label>
+              <input type="text" class="form-control" value="绍兴市嵊州市-长乐镇" readonly>
+            </div>
+            <div class="form-item">
+              <label>满意度 <span class="text-danger">*</span></label>
+              <div class="satisfaction-radio">
+                <label><input type="radio" name="modalSatisfaction" value="非常满意"> 非常满意</label>
+                <label><input type="radio" name="modalSatisfaction" value="满意" checked> 满意</label>
+                <label><input type="radio" name="modalSatisfaction" value="一般"> 一般</label>
+                <label><input type="radio" name="modalSatisfaction" value="不满意"> 不满意</label>
+              </div>
+            </div>
+            <div class="form-item">
+              <label>文字补充说明（选填）</label>
+              <textarea class="form-control" rows="3" placeholder="限500字，如反馈护理员专业度不足..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-primary">提交回访记录</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
